@@ -5,6 +5,6 @@ On Cognition:
     4. [text](https://en.wikipedia.org/wiki/Cognitive_skill)
 
 On personality traits and cognition association:
-    1. [text](<https://www.mdpi.com/2624-8611/5/1/8#:~:text=Social%20media%20usage%20is%20positively%20correlated%20with%20openness%20to%20experiences,BFI%2D10)%2C%20age.>)
+    1. [text](https://www.mdpi.com/2624-8611/5/1/8)
     2. [text](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7484019/pdf/nihms-1614123.pdf)
     3. [text](https://files.eric.ed.gov/fulltext/EJ1332326.pdf)
