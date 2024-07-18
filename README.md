@@ -1,6 +1,6 @@
 ## Final Year Project TMSL CSE Group-26
 
-Domain: Web Development
+Aim: Establish relation between personality traits and cognitive ability. 
 
 Group Mentor: Mrs. Nairanjana Chowdhury
 
