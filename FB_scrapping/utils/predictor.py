@@ -1,15 +1,4 @@
-'''
-Make sure to run this server on port 8090 or
-change the url path on the background.js script
-'''
-
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from datetime import datetime
-from typing import Union
-import string
-
+import os
 # ML imports
 from sklearn.linear_model import LogisticRegression
 import re
@@ -19,58 +8,26 @@ from nltk.stem import WordNetLemmatizer
 from sklearn.preprocessing import LabelEncoder
 from nltk.corpus import stopwords
 import nltk
+from nltk.data import find
+from nltk import download
+
+models = None
+tfidf_vectorizer = None
+
+def download_if_not_exists(resource, identifier):
+    try:
+        find(identifier)
+        print(resource,"exists")
+    except LookupError:
+        download(resource)
 
 # Download NLTK data
-nltk.download('stopwords')
-nltk.download('wordnet')
+download_if_not_exists('stopwords', 'corpora/stopwords.zip')
+download_if_not_exists('wordnet', 'corpora/wordnet.zip')
 
-class Big(BaseModel):
-    text: str
-
-class Item(BaseModel):
-    Name: str  # Name of the user
-    Age: int   # User age
-    Gender: str
-    Data: dict # The dict data formed by analysing the user profile
-    Post: int  # Number of self posts
-    Repost: int  # Number of reposts
-    Feed: int  # Number of posts on profile feed
-    Image: int  # Number of posts having an image
-
-app = FastAPI()
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-@app.get("/")
-async def welcome_user(user: str = "user"):
-    return {"message": f"Hello, {user}!"}
-
-@app.post("/api")
-async def root(body: Big):
-    body = body.dict()
-    recieved = body["text"]
-    Text = recieved  # This is the post text received
-    print(Text)  # You should see the post in your terminal
-
-    # Process and predict
-    temp = []
-    predictions = predict_personality(Text)
-    for personality, result in predictions.items():
-        print(f"Personality Type: {personality}")
-        print(f"Prediction: {(result['prediction'])}")
-        temp.append(result['prediction'])
-        print(f"Probability: {result['probability']:.2f}")
-        print()
-
-    print(translate_back(temp))
-    result = "openness"  # Dummy return; replace with actual result if necessary
-    return {"data": result}
+# Defining stop words and lemmatizer
+useless_words = set(stopwords.words('english'))
+lemmatiser = WordNetLemmatizer()
 
 # MBTI unique types and binary translation dictionaries
 unique_type_list = [
@@ -89,17 +46,30 @@ def translate_back(personality):
         s += b_Pers_list[i][l]
     return s
 
-# Defining stop words and lemmatizer
-useless_words = set(stopwords.words('english'))
-lemmatiser = WordNetLemmatizer()
 
-# Load the trained models
-with open('pkls/mbti_models.pkl', 'rb') as f:
-    models = pickle.load(f)
+def load_models():
+    global models
+    global tfidf_vectorizer
+    
+    try:
+        # Load the trained models
+        model_path = os.path.join(os.path.dirname(os.getcwd()), 'pkls', 'mbti_models.pkl')
+        with open(model_path, 'rb') as f:
+            models = pickle.load(f)
+        print(f"Models loaded: {models is not None}")
 
-# Load the trained TF-IDF vectorizer
-with open('pkls/tfidf_vectorizer.pkl', 'rb') as f:
-    tfidf_vectorizer = pickle.load(f)
+        # Load the trained TF-IDF vectorizer
+        vectorizer_path = os.path.join(os.path.dirname(os.getcwd()), 'pkls', 'tfidf_vectorizer.pkl')
+        with open(vectorizer_path, 'rb') as f:
+            tfidf_vectorizer = pickle.load(f)
+        print(f"TF-IDF Vectorizer loaded: {tfidf_vectorizer is not None}")
+
+        return models is not None and tfidf_vectorizer is not None
+    
+    except Exception as e:
+        print(f"An error occurred while loading the models: {e}")
+        return False
+    
 
 personality_type = [
     "IE: Introversion (I) / Extroversion (E)",
@@ -152,7 +122,6 @@ def predict_personality(input_text):
 
     return predictions
 
-import uvicorn
-
-if __name__ == '__main__':
-    uvicorn.run("api:app", port=8090, reload=True)
+if __name__=="__main__":
+    print("OK")
+    
