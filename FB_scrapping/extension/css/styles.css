@@ -1,0 +1,139 @@
+/* Override */
+header {
+  z-index: 0 !important;
+}
+/*  */
+
+#big5-user-traits-box {
+  padding: 1rem;
+  margin: 1rem 0;
+  background-color: rgba(255, 255, 255, 1);
+  border-radius: 12px;
+  box-shadow: rgba(200, 200, 193, 0.25) 0px 6px 12px -2px,
+    rgba(244, 244, 244, 0.3) 0px 3px 7px -3px;
+  z-index: 99;
+}
+
+/* #big5-user-traits-box:not(.float_right) {
+  font-size: 0.9em;
+} */
+
+#big5-user-traits-box.float_right {
+  position: fixed;
+  left: 10px;
+  bottom: 80px;
+}
+
+#big5-user-traits-box > div {
+  display: flex;
+}
+
+#big5-user-traits-box.float_right > div:nth-child(2) {
+  flex-direction: column;
+}
+
+.big_5_header {
+  display: flex;
+  flex-direction: row;
+  margin: 0 0 10px 0;
+  align-items: center;
+}
+
+.big_5_header img {
+  width: 30px;
+  height: 30px;
+}
+
+.big_5_header h4 {
+  margin: 0;
+  flex: 1;
+  padding-left: 0.5rem;
+  font-weight: bold;
+}
+
+#big5-user-traits-table,
+#big5-user-traits-table th,
+#big5-user-traits-table tr,
+#big5-user-traits-table td {
+  border: 1px solid green;
+  border-collapse: collapse;
+}
+
+#big5-user-traits-table th {
+  padding: 0.5rem 1rem;
+  font-weight: bold;
+}
+
+#big5-user-traits-table td {
+  padding: 0.5rem 1rem;
+}
+
+#big5-user-traits-table tr td:first-child {
+  font-weight: bold;
+}
+
+#big5-user-traits-table tr:nth-child(2) > td:first-child {
+  color: #7d6106;
+}
+
+#big5-user-traits-table tr:nth-child(3) > td:first-child {
+  color: #cf4f4a;
+}
+
+#big5-user-traits-table tr:nth-child(4) > td:first-child {
+  color: #5c5447;
+}
+
+#big5-user-traits-table tr:nth-child(5) > td:first-child {
+  color: #4da8c4;
+}
+
+#big5-user-traits-table tr:nth-child(6) > td:first-child {
+  color: #2bae8e;
+}
+
+#big5-user-traits-chart {
+  position: relative;
+}
+
+#big5-user-traits-box small {
+  color: gray;
+}
+
+.big_5_selected_text_analysis_box {
+  position: fixed;
+  right: 20px;
+  bottom: 80px;
+  box-shadow: rgba(0, 0, 0, 0.09) 0px 2px 1px, rgba(0, 0, 0, 0.09) 0px 4px 2px,
+    rgba(0, 0, 0, 0.09) 0px 8px 4px, rgba(0, 0, 0, 0.09) 0px 16px 8px,
+    rgba(0, 0, 0, 0.09) 0px 32px 16px;
+  padding: 1rem 2rem;
+  background-color: #f2f2f2;
+  border-radius: 15px;
+}
+
+.big_5_selected_text_analysis_box .title {
+  margin: 0 0 10px 0;
+  display: flex;
+  align-items: center;
+}
+
+.big_5_selected_text_analysis_box .title > span {
+  flex: 1;
+}
+
+.big_5_selected_text_analysis_box .title > button {
+  outline: none;
+  border: none;
+  padding: 2px;
+  background: transparent;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: medium;
+  transform: translate(20px, -10px);
+  color: gray;
+}
+
+.big_5_selected_text_analysis_box small {
+  color: gray;
+}
