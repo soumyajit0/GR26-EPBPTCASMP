@@ -52,7 +52,7 @@ src: https://www.nature.com/articles/s41597-022-01872-8
 
   
 
-Employebility:
+Employability:
 
 1. [16 personality](https://www.16personalities.com/articles/our-theory)
 
