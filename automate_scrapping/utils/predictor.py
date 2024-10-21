@@ -53,13 +53,13 @@ def load_models():
     
     try:
         # Load the trained models
-        model_path = os.path.join(os.path.dirname(os.getcwd()), 'pkls', 'mbti_models.pkl')
+        model_path = os.path.join(os.path.dirname(os.getcwd()), 'Pickle Files', 'mbti_models.pkl')
         with open(model_path, 'rb') as f:
             models = pickle.load(f)
         print(f"Models loaded: {models is not None}")
 
         # Load the trained TF-IDF vectorizer
-        vectorizer_path = os.path.join(os.path.dirname(os.getcwd()), 'pkls', 'tfidf_vectorizer.pkl')
+        vectorizer_path = os.path.join(os.path.dirname(os.getcwd()), 'Pickle Files', 'tfidf_vectorizer.pkl')
         with open(vectorizer_path, 'rb') as f:
             tfidf_vectorizer = pickle.load(f)
         print(f"TF-IDF Vectorizer loaded: {tfidf_vectorizer is not None}")
