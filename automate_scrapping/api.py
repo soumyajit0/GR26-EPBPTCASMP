@@ -3,6 +3,7 @@ Make sure to run this server on port 8090 or
 change the url path on the background.js script
 '''
 import os
+import threading
 import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,13 +11,10 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import Union
 import string
-
+from visualize import visualize_personality_predictions,update_frame
 from utils.predictor import load_models,predict_personality, translate_back
-
-
 class Big(BaseModel):
     text: str
-
 class Item(BaseModel):
     Name: str  # Name of the user
     Age: int   # User age
@@ -27,8 +25,11 @@ class Item(BaseModel):
     Feed: int  # Number of posts on profile feed
     Image: int  # Number of posts having an image
 
-app = FastAPI()
+class Name(BaseModel):
+    name:str
 
+NAME=None
+app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -40,6 +41,12 @@ app.add_middleware(
 @app.get("/")
 async def welcome_user(user: str = "user"):
     return {"message": f"Hello, {user}!"}
+
+@app.post("/send_name")
+async def root(body: Name):
+    name=body.name
+    print(name)
+    return {"success":True}
 
 @app.post("/api")
 async def root(body: Big):
@@ -59,7 +66,8 @@ async def root(body: Big):
         print()
 
     print(translate_back(temp))
-    result = translate_back(temp)  # Dummy return; replace with actual result if necessary
+    result = translate_back(temp) 
+    update_frame(result)
     return {"data": result}
 
 
@@ -81,11 +89,11 @@ async def set_up():
         print('--------------------------------------------')
         exit()
 
-
 @app.on_event("startup")
 async def startup_event():
-    await set_up()
+    threading.Thread(target=visualize_personality_predictions, daemon=True).start()
+    await set_up()  
 
 if __name__ == '__main__':
-    uvicorn.run("api:app", port=8090, reload=True)
+    uvicorn.run("api:app", port=8090, reload=False)
 

@@ -1,4 +1,4 @@
-let TRAITS = [
+var TRAITS = [
     'Agreeableness',
     'Conscientiousness',
     'Extraversion',

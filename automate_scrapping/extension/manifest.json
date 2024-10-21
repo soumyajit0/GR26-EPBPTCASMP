@@ -1,0 +1,24 @@
+{
+    "manifest_version": 3,
+    "name": "Facebook Post Scraper",
+    "version": "1.0",
+    "description": "A Chrome extension to scrape Facebook posts and send them to a server.",
+    "permissions": [
+      "activeTab",
+      "webRequest",
+      "webRequestBlocking",
+      "storage",
+      "http://localhost:8090/"
+    ],
+    "background": {
+      "service_worker": "background.js"
+    },
+    "content_scripts": [
+      {
+        "matches": ["*://www.facebook.com/*"],
+        "js": ["content.js"],
+        "run_at": "document_end"
+      }
+    ]
+  }
+  
