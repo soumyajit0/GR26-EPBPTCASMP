@@ -1,0 +1,14 @@
+def load_model_from_pkl(filename):
+    """
+    Load a model from a .pkl file.
+
+    :param filename: File path to load the model
+    :return: Loaded model
+    """
+    with open(filename, 'rb') as file:
+        model = pickle.load(file)
+    print(f"Model loaded from {filename}")
+    return model
+
+# Example usage
+loaded_model = load_model_from_pkl("logistic_model_IE.pkl")
