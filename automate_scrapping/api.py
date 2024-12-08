@@ -45,7 +45,7 @@ async def welcome_user(user: str = "user"):
 @app.post("/send_name")
 async def root(body: Name):
     name=body.name
-    print(name)
+    print(name) 
     return {"success":True}
 
 @app.post("/api")

@@ -90,7 +90,7 @@ def scroll_profile(profile_link):
     # Initialize the Chrome driver with the notification disabled
     # Load the extension
     # Load the extension from a directory
-    extension_directory = r'D:\Final Year Project\Final-Year-Project-Shared\automate_scrapping\extension' 
+    extension_directory = r'C:\Users\HP\Desktop\Final-Year-Project-Shared\automate_scrapping\extension' 
     chrome_options.add_argument(f'--load-extension={extension_directory}')
     driver_path = get_driver_path()
     print(driver_path)

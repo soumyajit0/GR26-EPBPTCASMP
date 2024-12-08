@@ -1,23 +1,21 @@
 import os
-# ML imports
-from sklearn.linear_model import LogisticRegression
 import re
-import numpy as np
 import pickle
 from nltk.stem import WordNetLemmatizer
-from sklearn.preprocessing import LabelEncoder
+from sklearn.linear_model import LogisticRegression
+from sklearn.feature_extraction.text import TfidfVectorizer
 from nltk.corpus import stopwords
-import nltk
-from nltk.data import find
 from nltk import download
+from nltk.data import find
 
-models = None
+# Global variables
+models = {}
 tfidf_vectorizer = None
 
 def download_if_not_exists(resource, identifier):
     try:
         find(identifier)
-        print(resource,"exists")
+        print(resource, "exists")
     except LookupError:
         download(resource)
 
@@ -28,6 +26,14 @@ download_if_not_exists('wordnet', 'corpora/wordnet.zip')
 # Defining stop words and lemmatizer
 useless_words = set(stopwords.words('english'))
 lemmatiser = WordNetLemmatizer()
+
+# Personality type names
+personality_type = [
+    "IE: Introversion (I) / Extroversion (E)",
+    "NS: Intuition (N) / Sensing (S)",
+    "FT: Feeling (F) / Thinking (T)",
+    "JP: Judging (J) / Perceiving (P)"
+]
 
 # MBTI unique types and binary translation dictionaries
 unique_type_list = [
@@ -45,38 +51,37 @@ def translate_back(personality):
     for i, l in enumerate(personality):
         s += b_Pers_list[i][l]
     return s
-
+# Update model paths and vectorizer path
+model_paths = {
+    "FT": r"C:\Users\HP\Desktop\Final-Year-Project-Shared\pkls\MBTI_Model_pkl\logistic_model_Feeling_(F)_Thinking_(T).pkl",
+    "IE": r"C:\Users\HP\Desktop\Final-Year-Project-Shared\pkls\MBTI_Model_pkl\logistic_model_Introversion_(I)_Extroversion_(E).pkl",
+    "NS": r"C:\Users\HP\Desktop\Final-Year-Project-Shared\pkls\MBTI_Model_pkl\logistic_model_Intuition_(N)_Sensing_(S).pkl",
+    "JP": r"C:\Users\HP\Desktop\Final-Year-Project-Shared\pkls\MBTI_Model_pkl\logistic_model_Judging_(J)_Perceiving_(P).pkl"
+}
+vectorizer_path = r"C:\Users\HP\Desktop\Final-Year-Project-Shared\pkls\vectorizer_data.pkl"
 
 def load_models():
     global models
     global tfidf_vectorizer
-    
-    try:
-        # Load the trained models
-        model_path = os.path.join(os.path.dirname(os.getcwd()), 'Pickle Files', 'mbti_models.pkl')
-        with open(model_path, 'rb') as f:
-            models = pickle.load(f)
-        print(f"Models loaded: {models is not None}")
 
-        # Load the trained TF-IDF vectorizer
-        vectorizer_path = os.path.join(os.path.dirname(os.getcwd()), 'Pickle Files', 'tfidf_vectorizer.pkl')
+    try:
+        # Load models into the dictionary
+        for key, path in model_paths.items():
+            with open(path, 'rb') as f:
+                models[key] = pickle.load(f)
+        print(f"Models loaded: {len(models)}")
+
+        # Load the TF-IDF vectorizer
         with open(vectorizer_path, 'rb') as f:
-            tfidf_vectorizer = pickle.load(f)
+            tfidf_data = pickle.load(f)
+            tfidf_vectorizer = tfidf_data['vectorizer']
         print(f"TF-IDF Vectorizer loaded: {tfidf_vectorizer is not None}")
 
-        return models is not None and tfidf_vectorizer is not None
-    
+        return True
+
     except Exception as e:
         print(f"An error occurred while loading the models: {e}")
         return False
-    
-
-personality_type = [
-    "IE: Introversion (I) / Extroversion (E)",
-    "NS: Intuition (N) / Sensing (S)",
-    "FT: Feeling (F) / Thinking (T)",
-    "JP: Judging (J) / Perceiving (P)"
-]
 
 def preprocess_posts(posts, remove_stop_words=True, remove_mbti_profiles=True):
     temp = posts
@@ -101,7 +106,8 @@ def preprocess_posts(posts, remove_stop_words=True, remove_mbti_profiles=True):
 
     # Remove MBTI personality words from posts
     if remove_mbti_profiles:
-        for t in unique_type_list:
+        for t in ["infj", "entp", "intp", "intj", "entj", "enfj", "infp", "enfp",
+                  "istp", "isfp", "isfj", "istj", "estp", "esfp", "estj", "esfj"]:
             temp = temp.replace(t, "")
 
     return temp
@@ -111,17 +117,18 @@ def predict_personality(input_text):
     transformed_text = tfidf_vectorizer.transform([preprocessed_text])
 
     predictions = {}
-    for personality in personality_type:
-        model = models[personality]
+    for key, model in models.items():
         prediction = model.predict(transformed_text)[0]
         probability = model.predict_proba(transformed_text)[0]
-        predictions[personality] = {
+        predictions[key] = {
             'prediction': prediction,
             'probability': probability[1] if prediction == 1 else probability[0]
         }
 
     return predictions
 
-if __name__=="__main__":
-    print("OK")
-    
+if __name__ == "__main__":
+    if load_models():
+        print("Models and vectorizer loaded successfully.")
+    else:
+        print("Error in loading models or vectorizer.")
