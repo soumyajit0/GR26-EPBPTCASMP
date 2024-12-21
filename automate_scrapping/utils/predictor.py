@@ -53,12 +53,12 @@ def translate_back(personality):
     return s
 # Update model paths and vectorizer path
 model_paths = {
-    "FT": r"C:\Users\HP\Desktop\Final-Year-Project-Shared\pkls\MBTI_Model_pkl\logistic_model_Feeling_(F)_Thinking_(T).pkl",
-    "IE": r"C:\Users\HP\Desktop\Final-Year-Project-Shared\pkls\MBTI_Model_pkl\logistic_model_Introversion_(I)_Extroversion_(E).pkl",
-    "NS": r"C:\Users\HP\Desktop\Final-Year-Project-Shared\pkls\MBTI_Model_pkl\logistic_model_Intuition_(N)_Sensing_(S).pkl",
-    "JP": r"C:\Users\HP\Desktop\Final-Year-Project-Shared\pkls\MBTI_Model_pkl\logistic_model_Judging_(J)_Perceiving_(P).pkl"
+    "FT": r"pkls\MBTI_Model_pkl\logistic_model_Feeling_(F)_Thinking_(T).pkl",
+    "IE": r"pkls\MBTI_Model_pkl\logistic_model_Introversion_(I)_Extroversion_(E).pkl",
+    "NS": r"pkls\MBTI_Model_pkl\logistic_model_Intuition_(N)_Sensing_(S).pkl",
+    "JP": r"pkls\MBTI_Model_pkl\logistic_model_Judging_(J)_Perceiving_(P).pkl"
 }
-vectorizer_path = r"C:\Users\HP\Desktop\Final-Year-Project-Shared\pkls\vectorizer_data.pkl"
+vectorizer_path = r"pkls\vectorizer_data.pkl"
 
 def load_models():
     global models

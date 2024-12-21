@@ -11,8 +11,13 @@ from selenium.common.exceptions import NoAlertPresentException
 
 # File to store the path of the driver (so it only installs once)
 driver_path_file = 'driver_path.pkl'
-EMAIL="pinakibnaerjee@gmail.com"
-PASSWORD="Pinaki2540"
+EMAIL="8334999569"
+PASSWORD="myfbaccount2024"
+
+
+import socket
+import json
+
 
 
 def dismiss_alert_if_present(driver):
@@ -90,7 +95,7 @@ def scroll_profile(profile_link):
     # Initialize the Chrome driver with the notification disabled
     # Load the extension
     # Load the extension from a directory
-    extension_directory = r'C:\Users\HP\Desktop\Final-Year-Project-Shared\automate_scrapping\extension' 
+    extension_directory = r'D:\Final Year Project\Final-Year-Project-Shared\automate_scrapping\extension' 
     chrome_options.add_argument(f'--load-extension={extension_directory}')
     driver_path = get_driver_path()
     print(driver_path)
@@ -135,6 +140,124 @@ def scroll_profile(profile_link):
         # Close the browser after scrolling
     time.sleep(30)
     driver.quit()
+   
+   
+# Function to scroll through a user profile
+def start_scroll(driver,profile_link):
+    # Open the profile link
+    driver.get(profile_link)
+    login(driver,EMAIL,PASSWORD)
+    script = """
+    Object.defineProperty(document, 'hidden', {value: false});
+    Object.defineProperty(document, 'visibilityState', {value: 'visible'});
+    setInterval(() => {document.dispatchEvent(new Event('visibilitychange'));}, 6000);
+    """
+    driver.execute_script(script)
+    # Time to wait for the page to load completely
+    time.sleep(3)
+    time.sleep(1)
+    SCROLL_PAUSE_TIME = 1
+
+    # Get scroll height
+    last_height=0
+    while last_height==0:
+        dismiss_alert_if_present(driver)
+        last_height = driver.execute_script("return document.body.scrollHeight")
+    height=min(100,last_height)
+    lim=500
+    cur=0
+    while cur<lim:
+        cur+=1
+        dismiss_alert_if_present(driver)
+        # Scroll down to bottom
+        print(f"window.scrollTo(0, {height});")
+        driver.execute_script(f"window.scrollTo(0, {height});")
+        height=min(height+400,last_height)
+        # Wait to load page
+        time.sleep(SCROLL_PAUSE_TIME)
+
+        # Calculate new scroll height and compare with last scroll height
+        new_height = driver.execute_script("return document.body.scrollHeight")
+        last_height = new_height
+        
+        # Close the browser after scrolling
+    
+    
+import socket
+import threading
+
+import threading
+
+class StoppableThread(threading.Thread):
+    """Thread class with a stop() method. The thread itself has to check
+    regularly for the stopped() condition."""
+
+    def __init__(self,  *args, **kwargs):
+        super(StoppableThread, self).__init__(*args, **kwargs)
+        self._stop_event = threading.Event()
+
+    def stop(self):
+        self._stop_event.set()
+
+    def stopped(self):
+        return self._stop_event.is_set()
+
+def start_server(host='127.0.0.1', port=65432):
+    """
+    Starts a server that listens for incoming connections and receives data.
+
+    :param host: IP address to bind the server to (default is localhost).
+    :param port: Port to bind the server to.
+    
+    """
+    global NAME
+    # Get or install the Chrome driver path
+    chrome_options = webdriver.ChromeOptions()
+    prefs = {
+        "profile.default_content_setting_values.notifications": 2   # block notifications
+    }
+    chrome_options.add_experimental_option("prefs", prefs)
+    chrome_options.add_argument('--disable-web-security')
+    chrome_options.add_argument('--allow-running-insecure-content')
+    chrome_options.add_argument("--disable-background-timer-throttling")
+    chrome_options.add_argument("--disable-renderer-backgrounding")
+    chrome_options.add_argument("--disable-backgrounding-occluded-windows")
+    #chrome_options.add_argument("--headless")
+    #chrome_options.add_argument("--disable-gpu")
+    # Initialize the Chrome driver with the notification disabled
+    # Load the extension
+    # Load the extension from a directory
+    extension_directory = r'D:\Final Year Project\Final-Year-Project-Shared\automate_scrapping\extension' 
+    chrome_options.add_argument(f'--load-extension={extension_directory}')
+    driver_path = get_driver_path()
+    print(driver_path)
+    driver = webdriver.Chrome(service=Service(driver_path), options=chrome_options)
+    Thread=None
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
+        server_socket.bind((host, port))
+        server_socket.listen()
+        print(f"Server listening on {host}:{port}...")
+        while True:
+            conn, addr = server_socket.accept()
+            with conn:
+                print(f"Connected by {addr}")
+                data = conn.recv(1024)  # Receive up to 1024 bytes
+                if not data:
+                    break
+                message = data.decode('utf-8')  # Decode received bytes
+                print(f"Received: {message}")
+                if message.strip().lower() == "final stop":
+                    print("Stop message received. Shutting down the server.")
+                    conn.sendall(b"Server stopping.")  # Send acknowledgment
+                    break
+                elif message.strip().lower() == "stop":
+                    Thread.stop()
+                else:
+                    link=message.strip().lower()
+                    Thread=StoppableThread(target=start_scroll,args=(driver,link))
+                    Thread.start()
+    
+
 
 if __name__=='__main__':
     #profile=input("Enter Facebook profile link: ")

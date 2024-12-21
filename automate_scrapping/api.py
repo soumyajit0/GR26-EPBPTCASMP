@@ -48,6 +48,27 @@ async def root(body: Name):
     print(name) 
     return {"success":True}
 
+
+
+
+import socket
+
+def send_data(host='127.0.0.1', port=65431, message="Hello, Server!"):
+    """
+    Sends data to a server.
+
+    :param host: IP address of the server.
+    :param port: Port the server is listening on.
+    :param message: The message to send.
+    """
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
+        client_socket.connect((host, port))
+        print(f"Connected to server {host}:{port}")
+        client_socket.sendall(message.encode('utf-8'))  # Send message
+        return
+
+
+
 @app.post("/api")
 async def root(body: Big):
     body = body.dict()
@@ -68,6 +89,7 @@ async def root(body: Big):
     print(translate_back(temp))
     result = translate_back(temp) 
     update_frame(result)
+    send_data(message=result)
     return {"data": result}
 
 
@@ -96,4 +118,4 @@ async def startup_event():
 
 if __name__ == '__main__':
     uvicorn.run("api:app", port=8090, reload=False)
-
+    run_api()
