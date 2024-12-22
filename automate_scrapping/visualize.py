@@ -9,6 +9,12 @@ import random
 personality_counts = dict()
 User = "Mark Zuckerberg"  # Global user placeholder
 
+def reset(name):
+    global User,personality_counts
+    User=name
+    personality_counts=dict()
+    
+    
 def predict_personality_dynamically(Type):
     """Update personality counts based on new 'Type' received."""
     global personality_counts
@@ -79,26 +85,26 @@ def visualize_personality_predictions():
     plt.tight_layout()
     plt.show()
 
-def receive_data_and_update():
-    """Simulates receiving data and updates the frame."""
-    personality_types = ["INTJ", "ENFP", "ISTP", "ENTJ", "INFJ"]  # Example personality types
+# def receive_data_and_update():
+#     """Simulates receiving data and updates the frame."""
+#     personality_types = ["INTJ", "ENFP", "ISTP", "ENTJ", "INFJ"]  # Example personality types
     
-    while True:
-        # Simulate predicting a random personality type
-        new_prediction = random.choice(personality_types)
-        print(f"New prediction: {new_prediction}")
+#     while True:
+#         # Simulate predicting a random personality type
+#         new_prediction = random.choice(personality_types)
+#         print(f"New prediction: {new_prediction}")
 
-        # Update the frame with the new prediction
-        update_frame(new_prediction)
+#         # Update the frame with the new prediction
+#         update_frame(new_prediction)
 
-        # Sleep for some time to simulate real-time data prediction intervals
-        time.sleep(2)  # Adjust this as needed
+#         # Sleep for some time to simulate real-time data prediction intervals
+#         time.sleep(2)  # Adjust this as needed
 
-def start_receiving_data():
-    """Starts a thread that simulates data reception."""
-    data_thread = threading.Thread(target=receive_data_and_update)
-    data_thread.daemon = True  # Daemon thread will exit when the main program exits
-    data_thread.start()
+# def start_receiving_data():
+#     """Starts a thread that simulates data reception."""
+#     data_thread = threading.Thread(target=receive_data_and_update)
+#     data_thread.daemon = True  # Daemon thread will exit when the main program exits
+#     data_thread.start()
 
 # # Start the data reception thread
 # #start_receiving_data()

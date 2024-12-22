@@ -45,7 +45,12 @@ def page_has_loaded(driver):
     page_state = driver.execute_script('return document.readyState;')
     return page_state == 'complete'
 
+Logged_in=False
+
 def login(driver,email,password):
+    global Logged_in
+    if Logged_in:
+        return
     c=0
     while c<120:
         c+=1
@@ -145,8 +150,16 @@ def scroll_profile(profile_link):
 # Function to scroll through a user profile
 def start_scroll(driver,profile_link):
     # Open the profile link
+    global Logged_in
     driver.get(profile_link)
-    login(driver,EMAIL,PASSWORD)
+    while True:
+        try:
+            login(driver,EMAIL,PASSWORD)
+            Logged_in=True
+            break
+        except:
+            print("Exception in login")
+            continue
     script = """
     Object.defineProperty(document, 'hidden', {value: false});
     Object.defineProperty(document, 'visibilityState', {value: 'visible'});

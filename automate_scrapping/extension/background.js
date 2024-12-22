@@ -8,11 +8,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     fetch('http://localhost:8090/api', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: request.postText })
+      body: JSON.stringify({ text: request.postText, imgs:request.imgs })
     })
     .then(response => response.json())
     .then(data => {
-      console.log('Post sent successfully:', data);
       sendResponse({ success: true });
     })
     .catch(error => {
@@ -29,7 +28,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     })
     .then(response => response.json())
     .then(data => {
-      console.log('Name sent successfully:', data);
       sendResponse({ success: true });
     })
     .catch(error => {

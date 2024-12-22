@@ -121,7 +121,7 @@ def send_data(host='127.0.0.1', port=65432, message="Hello, Server!"):
         return
 
 All=[ row for row in get_next_row(file_path,start_num=1)]
-start_num=2             # starts at 1
+start_num=24             # starts at 1, indexing at 0
 def send_next():
     global Per,Row
     row_number, fb_link, personality=All[Row-1]

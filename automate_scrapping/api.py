@@ -9,12 +9,15 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Union
+from typing import Union,List
 import string
-from visualize import visualize_personality_predictions,update_frame
+from visualize import visualize_personality_predictions,update_frame,reset
 from utils.predictor import load_models,predict_personality, translate_back
+
 class Big(BaseModel):
     text: str
+    imgs: List[str]
+    
 class Item(BaseModel):
     Name: str  # Name of the user
     Age: int   # User age
@@ -46,9 +49,8 @@ async def welcome_user(user: str = "user"):
 async def root(body: Name):
     name=body.name
     print(name) 
+    reset(name)
     return {"success":True}
-
-
 
 
 import socket
@@ -72,10 +74,13 @@ def send_data(host='127.0.0.1', port=65431, message="Hello, Server!"):
 @app.post("/api")
 async def root(body: Big):
     body = body.dict()
-    recieved = body["text"]
-    Text = recieved  # This is the post text received
-    print(Text)  # You should see the post in your terminal
-
+    recieved_text = body["text"]
+    Text = recieved_text # This is the post text received
+    img_links=body.get('imgs',[])
+    print("Images ",img_links)  # We will get a list of image urls( one post may have more than 1), 
+    #if an image exists
+    # Now take the image url and download and process the image
+    # the urls are in form of strings like 'www.facebook.com'
     # Process and predict
     temp = []
     predictions = predict_personality(Text)
@@ -113,9 +118,9 @@ async def set_up():
 
 @app.on_event("startup")
 async def startup_event():
+    await set_up()
     threading.Thread(target=visualize_personality_predictions, daemon=True).start()
-    await set_up()  
 
 if __name__ == '__main__':
     uvicorn.run("api:app", port=8090, reload=False)
-    run_api()
+

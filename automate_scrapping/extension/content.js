@@ -3,6 +3,26 @@ const more_link_selector = 'a[href*="more"]'; // Selector for the "see more" lin
 
 const MAX_REQUESTS = 30;
 let totalRequest = 0;
+async function check_for_image(post) {
+  let p1 = post?.parentElement?.parentElement?.parentElement;
+  console.log(p1);
+  // Proceed to the next lines only if p1 exists
+  if (!p1) {
+    return Promise.resolve([]);
+  }
+
+  let d1 = p1;
+  let imagesInDiv = d1.querySelectorAll('img');
+
+  // Create a list containing all img.src
+  let imgSrcs = [];
+  for (let img of imagesInDiv) {
+    imgSrcs.push(img.currentSrc || img.src); // Use currentSrc or fallback to src
+  }
+
+  return Promise.resolve(imgSrcs);
+}
+
 
 async function expandPost(post) {
   const moreButton = Array.from(post.querySelectorAll('div[role="button"]'))
@@ -45,6 +65,7 @@ async function searchPost() {
 
   for (let i = 0; i < allPosts.length; i++) {
     const post = allPosts[i];
+    console.log(post);
     if (!post.is_visited) {
       posts.push(post);
     }
@@ -55,9 +76,11 @@ async function searchPost() {
       if (!post.is_visited) {
         await expandPost(post);
         const postText = post.innerText;
+        let img_links=await check_for_image(post);
+        console.log(img_links);
         post.is_visited = true;
         if (postText) {
-          chrome.runtime.sendMessage({ action: 'sendPost', postText: postText });
+          chrome.runtime.sendMessage({ action: 'sendPost', postText: postText,imgs:img_links});
           totalRequest++;
         }
         if (totalRequest >= MAX_REQUESTS) break;
