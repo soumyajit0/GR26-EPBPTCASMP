@@ -78,13 +78,18 @@ async def root(body: Input):
     
 
     # Process images and extract text for additional personality analysis
+    whole_image_text=""
     for img_url in img_links:
         extracted_text=download_and_process_image(img_url)
         if extracted_text:
-            print(extracted_text)
+            whole_image_text+=extracted_text+". "
         else:
             print("No text")
         print()
+    
+    print("Text from images: ",whole_image_text)
+    #Adding the whole image text infront of post text
+    recieved_text=whole_image_text+recieved_text
 
     predictions = predict_personality(recieved_text)
     temp = []

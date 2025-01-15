@@ -14,11 +14,8 @@ driver_path_file = 'driver_path.pkl'
 EMAIL="8334999569"
 PASSWORD="myfbaccount2024"
 
-
 import socket
 import json
-
-
 
 def dismiss_alert_if_present(driver):
     try:
