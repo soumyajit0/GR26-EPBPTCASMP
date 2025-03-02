@@ -15,6 +15,7 @@ from contextlib import asynccontextmanager
 from visualize import visualize_personality_predictions, update_frame, reset
 from utils.predictor import load_models, predict_personality, translate_back
 from image_analysis import download_and_process_image
+from utils.DBN_ANN import ANN, DBN, RBM, train_ann_model, train_dbn_model
 
 from __init__ import set_dir
 
@@ -127,7 +128,7 @@ async def set_up():
     """
     Loads the models required for personality prediction.
     """
-    result = load_models()
+    result = load_models(models_path = r"C:\Users\HP\Desktop\final_yr_project\Deliverables\pkls\ANN_pkl\models.pkl",vectorizer_path = r"C:\Users\HP\Desktop\final_yr_project\Deliverables\pkls\ANN_pkl\vectorizer.pkl")
     if result:
         print()
         print('--------------------------------------------')
