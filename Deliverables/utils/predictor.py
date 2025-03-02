@@ -109,7 +109,7 @@ def save_models(models, vectorizer, models_path="models.pkl", vectorizer_path="v
     print(f"✅ Models saved to {models_path}")
     print(f"✅ Vectorizer saved to {vectorizer_path}")
 
-def load_models(models_path="models.pkl", vectorizer_path="vectorizer.pkl"):
+def load_models(models_path="./models.pkl", vectorizer_path="./vectorizer.pkl"):
     """
     Loads the trained models and vectorizer from disk.
     """
