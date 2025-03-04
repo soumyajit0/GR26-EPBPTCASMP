@@ -10,7 +10,7 @@ from nltk.data import find
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 # Import custom models and training functions from DBN_ANN.py
-from .DBN_ANN import ANN, DBN, RBM, train_ann_model, train_dbn_model
+from DBN_ANN import ANN, DBN, RBM, train_ann_model, train_dbn_model
 
 # Global Personality Definitions
 personality_type = ["IE", "NS", "FT", "JP"]  # Each dichotomy (e.g., IE for Introversion/Extroversion)
@@ -42,7 +42,7 @@ lemmatiser = WordNetLemmatizer()
 def preprocess_posts(text):
     """
     Preprocess the input text: remove URLs, non-alphabet characters,
-    long repeated characters and stopwords; then lemmatize the words.
+    long repeated characters, and stopwords; then lemmatize the words.
     """
     text = re.sub('http[s]?://\S+', '', text)            # Remove URLs
     text = re.sub("[^a-zA-Z]", " ", text).lower()          # Keep only alphabets and lowercase
@@ -68,7 +68,7 @@ def predict_personality(input_text, models, vectorizer):
         vectorizer: A fitted TF-IDF vectorizer.
         
     Returns:
-        dict: For each dichotomy a dictionary with:
+        dict: For each dichotomy, a dictionary with:
               'prediction': 0 or 1, and
               'probability': confidence score.
               Also includes an 'MBTI' key with the 4-letter personality type.
@@ -129,6 +129,7 @@ def load_models(models_path, vectorizer_path):
 
 # -----------------------------------------------------------------------------
 # Global aggregation for personality predictions from multiple posts.
+# We now store both the cumulative confidence and count for each trait.
 personality_aggregation = {
     "IE": {"I": {"count": 0, "conf_sum": 0.0}, "E": {"count": 0, "conf_sum": 0.0}},
     "NS": {"N": {"count": 0, "conf_sum": 0.0}, "S": {"count": 0, "conf_sum": 0.0}},
@@ -153,7 +154,7 @@ def update_personality_aggregation(post_text, models, vectorizer):
         binary_pred = pred_info['prediction']  # 0 or 1
         prob = pred_info['probability']
         # For a prediction of 0 (e.g., "I"), use (1 - prob) as confidence;
-        # for 1 (e.g., "E"), use prob.
+        # for a prediction of 1 (e.g., "E"), use prob.
         confidence = (1 - prob) if binary_pred == 0 else prob
         idx = personality_type.index(dichotomy)
         letter = b_Pers_list[idx][binary_pred]
@@ -162,25 +163,30 @@ def update_personality_aggregation(post_text, models, vectorizer):
 
 def get_aggregated_personality():
     """
-    Computes the overall MBTI type from the aggregated predictions.
+    Computes the overall MBTI type using the average confidence for each trait.
+    
+    For each dichotomy, the average confidence is computed as:
+        average = conf_sum / count (if count > 0, else 0)
+    The letter with the higher average is selected.
     
     Returns:
-        str: Overall MBTI type based on cumulative confidence scores and counts.
+        str: Overall MBTI type.
     """
     overall_mbti = ""
     for dichotomy in personality_type:
-        letters = list(personality_aggregation[dichotomy].keys())
+        data = personality_aggregation[dichotomy]
+        letters = list(data.keys())
         letter1, letter2 = letters[0], letters[1]
-        conf1 = personality_aggregation[dichotomy][letter1]["conf_sum"]
-        conf2 = personality_aggregation[dichotomy][letter2]["conf_sum"]
-        if conf1 > conf2:
+        count1 = data[letter1]["count"]
+        count2 = data[letter2]["count"]
+        avg1 = data[letter1]["conf_sum"] / count1 if count1 > 0 else 0.0
+        avg2 = data[letter2]["conf_sum"] / count2 if count2 > 0 else 0.0
+        if avg1 > avg2:
             overall_mbti += letter1
-        elif conf2 > conf1:
+        elif avg2 > avg1:
             overall_mbti += letter2
         else:
             # Tie-breaker using counts.
-            count1 = personality_aggregation[dichotomy][letter1]["count"]
-            count2 = personality_aggregation[dichotomy][letter2]["count"]
             overall_mbti += letter1 if count1 >= count2 else letter2
     return overall_mbti
 
@@ -210,16 +216,51 @@ def get_aggregated_details():
 # For testing purposes: load models and perform a test aggregation.
 if __name__ == "__main__":
     try:
-        models, vectorizer = load_models(r"C:\Users\HP\Desktop\final_yr_project\Deliverables\pkls\ANN_pkl\models.pkl", r"C:\Users\HP\Desktop\final_yr_project\Deliverables\pkls\ANN_pkl\vectorizer.pkl")
-        test_text = "This is a test post to check personality prediction and aggregation."
-        update_personality_aggregation(test_text, models, vectorizer)
-        overall = get_aggregated_personality()
-        details = get_aggregated_details()
-        print("Overall MBTI:", overall)
-        print("Aggregation Details:")
-        for dichotomy, data in details.items():
-            print(f" {dichotomy}:")
-            for letter, stats in data.items():
-                print(f"   {letter}: count = {stats['count']}, confidence sum = {stats['conf_sum']:.2f}")
+        models, vectorizer = load_models(
+            r"C:\Users\HP\Desktop\final_yr_project\Deliverables\pkls\ANN_pkl\models.pkl",
+            r"C:\Users\HP\Desktop\final_yr_project\Deliverables\pkls\ANN_pkl\vectorizer.pkl"
+        )
+        # A diverse list of posts representing different personality aspects:
+        posts = [
+            "I love spending time alone reading and reflecting on my thoughts.",                # Likely Introverted (I)
+            "I enjoy lively parties and meeting lots of new people; social energy fuels me.",      # Likely Extroverted (E)
+            "I rely on my intuition and abstract ideas to understand complex concepts.",         # Likely Intuitive (N)
+            "I prefer dealing with concrete facts and observable details in my everyday work.",    # Likely Sensing (S)
+            "I deeply care about others and let my emotions guide my decisions.",                 # Likely Feeling (F)
+            "I make decisions based solely on logic and objective analysis.",                     # Likely Thinking (T)
+            "I like to plan every detail in advance and keep my schedule structured.",             # Likely Judging (J)
+            "I enjoy a flexible lifestyle, embracing spontaneity and unexpected adventures."       # Likely Perceiving (P)
+        ]
+        
+        # Process each post one by one and show iteration details.
+        for idx, post in enumerate(posts, start=1):
+            print(f"\n----- Iteration {idx}: Processing Post -----")
+            print("Post Text:")
+            print(post)
+            
+            # Get the per-post personality prediction
+            prediction = predict_personality(post, models, vectorizer)
+            print("Predicted MBTI for this post:", prediction['MBTI'])
+            
+            # Update the aggregation with the current post.
+            update_personality_aggregation(post, models, vectorizer)
+            
+            # Retrieve the current overall personality and detailed aggregates.
+            overall = get_aggregated_personality()
+            details = get_aggregated_details()
+            
+            print("Current Overall MBTI Prediction:", overall)
+            print("Current Aggregation Details:")
+            for dichotomy, data in details.items():
+                print(f" {dichotomy}:")
+                for letter, stats in data.items():
+                    avg = stats['conf_sum'] / stats['count'] if stats['count'] > 0 else 0.0
+                    print(f"   {letter}: count = {stats['count']}, average confidence = {avg:.2f}")
+            print("-" * 50)
+        
+        # Final overall personality after processing all posts.
+        print("\nFinal Overall MBTI:", overall)
     except Exception as e:
         print("Error during testing:", e)
+
+
