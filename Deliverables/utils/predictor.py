@@ -9,14 +9,16 @@ from nltk import download
 from nltk.data import find
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-# Import custom models and training functions from DBN_ANN module
+# Import custom models and training functions from DBN_ANN.py
 from .DBN_ANN import ANN, DBN, RBM, train_ann_model, train_dbn_model
 
-# --- Global Personality Definitions ---
-personality_type = ["IE", "NS", "FT", "JP"]  # List of personality dichotomies
-b_Pers = {'I': 0, 'E': 1, 'N': 0, 'S': 1, 'F': 0, 'T': 1, 'J': 0, 'P': 1}  # Mapping letters to binary
+# Global Personality Definitions
+personality_type = ["IE", "NS", "FT", "JP"]  # Each dichotomy (e.g., IE for Introversion/Extroversion)
+# Mapping letters to binary values: e.g., I=0, E=1, etc.
+b_Pers = {'I': 0, 'E': 1, 'N': 0, 'S': 1, 'F': 0, 'T': 1, 'J': 0, 'P': 1}
+# Mapping binary values back to letters for each dichotomy
 b_Pers_list = [
-    {0: 'I', 1: 'E'},  # Mapping binary values back to letters
+    {0: 'I', 1: 'E'},
     {0: 'N', 1: 'S'},
     {0: 'F', 1: 'T'},
     {0: 'J', 1: 'P'}
@@ -29,35 +31,28 @@ def download_if_not_exists(resource, identifier):
     except LookupError:
         download(resource)
 
-# Download necessary NLTK data
+# Download necessary NLTK data if not already present.
 download_if_not_exists('stopwords', 'corpora/stopwords.zip')
 download_if_not_exists('wordnet', 'corpora/wordnet.zip')
 
-# Define stop words and lemmatizer for text preprocessing
+# Set up stopwords and lemmatizer for text preprocessing.
 useless_words = set(stopwords.words('english'))
 lemmatiser = WordNetLemmatizer()
 
 def preprocess_posts(text):
     """
-    Preprocesses the input text by removing URLs, non-alphabetic characters,
-    long repeated characters, and stopwords, and then lemmatizes the words.
+    Preprocess the input text: remove URLs, non-alphabet characters,
+    long repeated characters and stopwords; then lemmatize the words.
     """
     text = re.sub('http[s]?://\S+', '', text)            # Remove URLs
-    text = re.sub("[^a-zA-Z]", " ", text).lower()          # Remove non-alphabetic characters and lowercase
+    text = re.sub("[^a-zA-Z]", " ", text).lower()          # Keep only alphabets and lowercase
     text = re.sub(r'([a-z])\1{2,}', '', text)              # Remove long repeated characters
     tokens = [lemmatiser.lemmatize(word) for word in text.split() if word not in useless_words]
     return " ".join(tokens)
 
-def extract_dichotomy_labels(data):
-    """
-    Extracts binary labels for each personality dichotomy from the input data.
-    """
-    labels = data['type'].apply(lambda x: [b_Pers[x[0]], b_Pers[x[1]], b_Pers[x[2]], b_Pers[x[3]]])
-    return np.array(labels.tolist())
-
 def vectorize_text(posts, max_features=1000):
     """
-    Vectorizes the input text using TF-IDF.
+    Vectorize the input text using TF-IDF.
     """
     vectorizer = TfidfVectorizer(max_features=max_features)
     X = vectorizer.fit_transform(posts)
@@ -65,7 +60,18 @@ def vectorize_text(posts, max_features=1000):
 
 def predict_personality(input_text, models, vectorizer):
     """
-    Predicts the personality type for the given input text using the loaded models and vectorizer.
+    Predict the personality dichotomies from input text.
+    
+    Args:
+        input_text (str): The raw text input.
+        models (dict): A dictionary containing models for each dichotomy (keys: "IE", "NS", "FT", "JP").
+        vectorizer: A fitted TF-IDF vectorizer.
+        
+    Returns:
+        dict: For each dichotomy a dictionary with:
+              'prediction': 0 or 1, and
+              'probability': confidence score.
+              Also includes an 'MBTI' key with the 4-letter personality type.
     """
     preprocessed_text = preprocess_posts(input_text)
     transformed_text = vectorizer.transform([preprocessed_text])
@@ -74,14 +80,14 @@ def predict_personality(input_text, models, vectorizer):
     mbti = ""
     for i, dichotomy in enumerate(personality_type):
         model = models[dichotomy]
-        if hasattr(model, "forward"):  # PyTorch model
+        if hasattr(model, "forward"):  # For PyTorch models
             input_dense = torch.FloatTensor(transformed_text.toarray()).to(next(model.parameters()).device)
             model.eval()
             with torch.no_grad():
                 output = model(input_dense)
             pred = int(output.item() > 0.5)
             prob = output.item()
-        else:  # scikit-learn model
+        else:  # For scikit-learn models
             pred = model.predict(transformed_text)[0]
             prob = model.predict_proba(transformed_text)[0][pred] if hasattr(model, "predict_proba") else None
         predictions[dichotomy] = {'prediction': pred, 'probability': prob}
@@ -91,7 +97,7 @@ def predict_personality(input_text, models, vectorizer):
 
 def translate_back(pred_list):
     """
-    Translates a list of binary predictions back into a 4-letter MBTI type.
+    Translate a list of binary predictions into a 4-letter MBTI type.
     """
     mbti = ""
     for i, pred in enumerate(pred_list):
@@ -100,7 +106,7 @@ def translate_back(pred_list):
 
 def save_models(models, vectorizer, models_path="models.pkl", vectorizer_path="vectorizer.pkl"):
     """
-    Saves the trained models and vectorizer to disk.
+    Save the trained models and vectorizer to disk.
     """
     with open(models_path, 'wb') as f:
         pickle.dump(models, f)
@@ -111,7 +117,7 @@ def save_models(models, vectorizer, models_path="models.pkl", vectorizer_path="v
 
 def load_models(models_path, vectorizer_path):
     """
-    Loads the trained models and vectorizer from disk.
+    Load trained models and vectorizer from disk.
     """
     with open(models_path, 'rb') as f:
         models = pickle.load(f)
@@ -121,13 +127,99 @@ def load_models(models_path, vectorizer_path):
     print(f"✅ Loaded vectorizer from {vectorizer_path}")
     return models, vectorizer
 
-# Define paths to your pickled models and vectorizer
-models_path = r"C:\Users\HP\Desktop\final_yr_project\Deliverables\pkls\ANN_pkl\models.pkl"
-vectorizer_path = r"C:\Users\HP\Desktop\final_yr_project\Deliverables\pkls\ANN_pkl\vectorizer.pkl"
+# -----------------------------------------------------------------------------
+# Global aggregation for personality predictions from multiple posts.
+personality_aggregation = {
+    "IE": {"I": {"count": 0, "conf_sum": 0.0}, "E": {"count": 0, "conf_sum": 0.0}},
+    "NS": {"N": {"count": 0, "conf_sum": 0.0}, "S": {"count": 0, "conf_sum": 0.0}},
+    "FT": {"F": {"count": 0, "conf_sum": 0.0}, "T": {"count": 0, "conf_sum": 0.0}},
+    "JP": {"J": {"count": 0, "conf_sum": 0.0}, "P": {"count": 0, "conf_sum": 0.0}}
+}
 
+def update_personality_aggregation(post_text, models, vectorizer):
+    """
+    Processes a single post's text, predicts personality dichotomies,
+    and updates the global aggregation.
+    
+    Args:
+        post_text (str): Text from a single post.
+        models (dict): Models for each dichotomy.
+        vectorizer: A fitted TF-IDF vectorizer.
+    """
+    global personality_aggregation
+    predictions = predict_personality(post_text, models, vectorizer)
+    for dichotomy in personality_type:
+        pred_info = predictions[dichotomy]
+        binary_pred = pred_info['prediction']  # 0 or 1
+        prob = pred_info['probability']
+        # For a prediction of 0 (e.g., "I"), use (1 - prob) as confidence;
+        # for 1 (e.g., "E"), use prob.
+        confidence = (1 - prob) if binary_pred == 0 else prob
+        idx = personality_type.index(dichotomy)
+        letter = b_Pers_list[idx][binary_pred]
+        personality_aggregation[dichotomy][letter]["count"] += 1
+        personality_aggregation[dichotomy][letter]["conf_sum"] += confidence
+
+def get_aggregated_personality():
+    """
+    Computes the overall MBTI type from the aggregated predictions.
+    
+    Returns:
+        str: Overall MBTI type based on cumulative confidence scores and counts.
+    """
+    overall_mbti = ""
+    for dichotomy in personality_type:
+        letters = list(personality_aggregation[dichotomy].keys())
+        letter1, letter2 = letters[0], letters[1]
+        conf1 = personality_aggregation[dichotomy][letter1]["conf_sum"]
+        conf2 = personality_aggregation[dichotomy][letter2]["conf_sum"]
+        if conf1 > conf2:
+            overall_mbti += letter1
+        elif conf2 > conf1:
+            overall_mbti += letter2
+        else:
+            # Tie-breaker using counts.
+            count1 = personality_aggregation[dichotomy][letter1]["count"]
+            count2 = personality_aggregation[dichotomy][letter2]["count"]
+            overall_mbti += letter1 if count1 >= count2 else letter2
+    return overall_mbti
+
+def reset_personality_aggregation():
+    """
+    Resets the global personality aggregation to its initial state.
+    """
+    global personality_aggregation
+    personality_aggregation = {
+        "IE": {"I": {"count": 0, "conf_sum": 0.0}, "E": {"count": 0, "conf_sum": 0.0}},
+        "NS": {"N": {"count": 0, "conf_sum": 0.0}, "S": {"count": 0, "conf_sum": 0.0}},
+        "FT": {"F": {"count": 0, "conf_sum": 0.0}, "T": {"count": 0, "conf_sum": 0.0}},
+        "JP": {"J": {"count": 0, "conf_sum": 0.0}, "P": {"count": 0, "conf_sum": 0.0}}
+    }
+
+def get_aggregated_details():
+    """
+    Returns the current global aggregation details for all personality traits.
+    
+    Returns:
+        dict: The personality_aggregation dictionary.
+    """
+    global personality_aggregation
+    return personality_aggregation
+
+# -----------------------------------------------------------------------------
+# For testing purposes: load models and perform a test aggregation.
 if __name__ == "__main__":
     try:
-        models, vectorizer = load_models(models_path=models_path, vectorizer_path=vectorizer_path)
-        print("✅ Models and vectorizer loaded successfully.")
-    except (FileNotFoundError, AttributeError, pickle.UnpicklingError) as e:
-        print(f"❌ Error loading models or vectorizer: {e}")
+        models, vectorizer = load_models(r"C:\Users\HP\Desktop\final_yr_project\Deliverables\pkls\ANN_pkl\models.pkl", r"C:\Users\HP\Desktop\final_yr_project\Deliverables\pkls\ANN_pkl\vectorizer.pkl")
+        test_text = "This is a test post to check personality prediction and aggregation."
+        update_personality_aggregation(test_text, models, vectorizer)
+        overall = get_aggregated_personality()
+        details = get_aggregated_details()
+        print("Overall MBTI:", overall)
+        print("Aggregation Details:")
+        for dichotomy, data in details.items():
+            print(f" {dichotomy}:")
+            for letter, stats in data.items():
+                print(f"   {letter}: count = {stats['count']}, confidence sum = {stats['conf_sum']:.2f}")
+    except Exception as e:
+        print("Error during testing:", e)
