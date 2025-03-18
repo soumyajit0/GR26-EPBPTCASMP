@@ -15,7 +15,6 @@ EMAIL="8334999569"
 PASSWORD="myfbaccount2024"
 
 import socket
-import json
 
 def dismiss_alert_if_present(driver):
     try:
@@ -24,21 +23,15 @@ def dismiss_alert_if_present(driver):
     except NoAlertPresentException:
         pass
 
-# def get_driver_path():
-#     # If the driver path is already saved, load it
-#     if os.path.exists(driver_path_file):
-#         with open(driver_path_file, 'rb') as file:
-#             driver_path = pickle.load(file)
-#             if os.path.exists(driver_path):  # Make sure the path is valid
-#                 return driver_path
+
 
 def get_driver_path():
     # Always install a new driver version, ignoring cached value
-    from webdriver_manager.chrome import ChromeDriverManager
-    driver_path = ChromeDriverManager().install()
-    # Optionally, you can remove the caching logic here
-    return driver_path
-
+    if os.path.exists(driver_path_file):
+        with open(driver_path_file, 'rb') as file:
+            driver_path = pickle.load(file)
+            if os.path.exists(driver_path):  # Make sure the path is valid
+                return driver_path
     # If no saved driver, install it using ChromeDriverManager and save the path
     driver_path = ChromeDriverManager().install()
     with open(driver_path_file, 'wb') as file:
@@ -173,7 +166,6 @@ def start_scroll(driver,profile_link):
     driver.execute_script(script)
     # Time to wait for the page to load completely
     time.sleep(3)
-    time.sleep(1)
     SCROLL_PAUSE_TIME = 1
 
     # Get scroll height
@@ -204,7 +196,6 @@ def start_scroll(driver,profile_link):
 import socket
 import threading
 
-import threading
 
 class StoppableThread(threading.Thread):
     """Thread class with a stop() method. The thread itself has to check
