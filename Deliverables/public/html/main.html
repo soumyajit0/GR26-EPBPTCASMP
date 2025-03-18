@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facebook Profile Personality Visualizer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 800px;
+            margin-top: 50px;
+        }
+        .chart-container {
+            width: 100%;
+            height: 400px;
+        }
+        table {
+            width: 100%;
+        }
+        th, td {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container text-center">
+        <h2 class="mb-4">Facebook Profile Personality Visualizer</h2>
+        <form id="profileForm">
+            <div class="mb-3">
+                <input type="url" id="profileLink" class="form-control" placeholder="Enter Facebook Profile Link" required>
+            </div>
+            <button type="submit" id="analyzeBtn" class="btn btn-primary">Analyze</button>
+            <button type="button" id="stopBtn" class="btn btn-danger d-none">Stop Analysis</button>
+        </form>
+
+        <div class="mt-4 row text-center">
+            <h3 id="visualizerTitle" class="d-none">Personality Visualizer <span id="userName"></span></h3>
+        </div>
+        
+        <div class="mt-4 row">
+            <!-- Table on the left -->
+            <div class="col-md-6 d-none" id="tableContainer">
+                <h4>Personality Traits</h4>
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Personality Type</th>
+                            <th>Score</th>
+                        </tr>
+                    </thead>
+                    <tbody id="personalityTable">
+                        <!-- Rows will be added dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        
+            <!-- Chart on the right -->
+            <div class="col-md-6 d-none" id="chartContainer">
+                <h4>Personality Distribution</h4>
+                <canvas id="personalityChart" class="chart-container"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let fetchInterval = null;
+
+        document.getElementById("profileForm").addEventListener("submit", function(event) {
+            event.preventDefault();
+            const profileLink = document.getElementById("profileLink").value;
+            fetchUserName();
+            axios.post("http://localhost:8090/profile", { url: profileLink })
+                .then(response => {
+                    console.log("Profile submitted successfully");
+                    startFetchingUpdates(); // Start fetching updates only after submission
+                })
+                .catch(error => console.error("Error submitting profile:", error));
+        });
+
+        function startFetchingUpdates() {
+            if (fetchInterval) return; // Prevent multiple intervals
+
+            fetchUpdates(); // Fetch immediately
+            fetchInterval = setInterval(fetchUpdates, 2000); // Fetch every 2s
+
+            // Toggle button visibility
+            document.getElementById("analyzeBtn").classList.add("d-none");
+            document.getElementById("stopBtn").classList.remove("d-none");
+        }
+
+        function stopFetchingUpdates() {
+            if (fetchInterval) {
+                clearInterval(fetchInterval);
+                fetchInterval = null;
+            }
+
+            // Toggle button visibility
+            document.getElementById("analyzeBtn").classList.remove("d-none");
+            document.getElementById("stopBtn").classList.add("d-none");
+        }
+
+        document.getElementById("stopBtn").addEventListener("click", stopFetchingUpdates);
+
+        let ctx = document.getElementById("personalityChart").getContext("2d");
+
+        let personalityChart = new Chart(ctx, {
+            type: "pie",
+            data: {
+                labels: [],
+                datasets: [{
+                    data: [],
+                    backgroundColor: [
+                        "#ff6384", "#36a2eb", "#ffce56", "#4bc0c0", "#9966ff", "#ff9f40",
+                        "#ff6384", "#36a2eb", "#ffce56", "#4bc0c0", "#9966ff", "#ff9f40",
+                        "#ff6384", "#36a2eb", "#ffce56", "#4bc0c0"
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true
+            }
+        });
+
+        function updateChart(data) {
+            // Show the table and chart when data arrives
+            document.getElementById("tableContainer").classList.remove("d-none");
+            document.getElementById("chartContainer").classList.remove("d-none");
+    
+            let tableBody = document.getElementById("personalityTable");
+            tableBody.innerHTML = ""; // Clear previous data
+    
+            Object.entries(data).forEach(([type, score]) => {
+                let row = `<tr><td>${type}</td><td>${score}</td></tr>`;
+                tableBody.innerHTML += row;
+            });
+    
+            personalityChart.data.labels = Object.keys(data);
+            personalityChart.data.datasets[0].data = Object.values(data);
+            personalityChart.update();
+        }
+        
+        function fetchUserName() {
+            document.getElementById("visualizerTitle").classList.remove("d-none");
+            axios.get("http://localhost:8090/get_name")
+                .then(response => {
+                    document.getElementById("userName").textContent = response.data.name;
+                    if(response.data.name=="none"){
+                        fetchUserName();
+                        return;
+                    }
+                    document.getElementById("visualizerTitle").classList.remove("d-none");
+                })
+                .catch(error => console.error("Error fetching name:", error));
+
+        }
+
+        function fetchUpdates() {
+            axios.get("http://localhost:8090/result")
+                .then(response => updateChart(response.data))
+                .catch(error => console.error("Error fetching updates:", error));
+        }
+    </script>
+</body>
+</html>

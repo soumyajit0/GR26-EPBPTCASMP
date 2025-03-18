@@ -15,6 +15,7 @@ EMAIL="8334999569"
 PASSWORD="myfbaccount2024"
 
 import socket
+import json
 
 def dismiss_alert_if_present(driver):
     try:
@@ -78,9 +79,11 @@ def get_user_name(driver):
         print("An error occurred while finding the h1 element:", e)
         return "NONE"
 
+STOP=False
+
 # Function to scroll through a user profile
 def scroll_profile(profile_link):
-    global NAME
+    global NAME,STOP
     # Get or install the Chrome driver path
     chrome_options = webdriver.ChromeOptions()
     prefs = {
@@ -126,7 +129,7 @@ def scroll_profile(profile_link):
     height=min(100,last_height)
     lim=500
     cur=0
-    while cur<lim:
+    while cur<lim and not STOP:
         cur+=1
         dismiss_alert_if_present(driver)
         # Scroll down to bottom
@@ -141,7 +144,7 @@ def scroll_profile(profile_link):
         last_height = new_height
         
         # Close the browser after scrolling
-    time.sleep(30)
+    time.sleep(15)
     driver.quit()
    
    
@@ -214,20 +217,13 @@ class StoppableThread(threading.Thread):
 from __init__ import set_dir
 set_dir()
 
-if __name__=='__main__':
-    profile=input("Enter Facebook profile link: ")
-    #profile='https://www.facebook.com/zuck'
-    scroll_profile(profile)
-    
-    
-    
-    
+
     
     
     
 #--------------------------For verification dont touch -------------------------------------
 #-------------------------------------------------------------------------------------------
-def start_server(host='127.0.0.1', port=65432):
+def start_server(host='127.0.0.1', port=65431):
     """
     Starts a server that listens for incoming connections and receives data.
 
@@ -235,29 +231,6 @@ def start_server(host='127.0.0.1', port=65432):
     :param port: Port to bind the server to.
     
     """
-    global NAME
-    # Get or install the Chrome driver path
-    chrome_options = webdriver.ChromeOptions()
-    prefs = {
-        "profile.default_content_setting_values.notifications": 2   # block notifications
-    }
-    chrome_options.add_experimental_option("prefs", prefs)
-    chrome_options.add_argument('--disable-web-security')
-    chrome_options.add_argument('--allow-running-insecure-content')
-    chrome_options.add_argument("--disable-background-timer-throttling")
-    chrome_options.add_argument("--disable-renderer-backgrounding")
-    chrome_options.add_argument("--disable-backgrounding-occluded-windows")
-    #chrome_options.add_argument("--headless")
-    #chrome_options.add_argument("--disable-gpu")
-    # Initialize the Chrome driver with the notification disabled
-    # Load the extension
-    # Load the extension from a directory
-    extension_directory = r'D:\Final Year Project\Final-Year-Project-Shared\automate_scrapping\extension' 
-    chrome_options.add_argument(f'--load-extension={extension_directory}')
-    driver_path = get_driver_path()
-    print(driver_path)
-    driver = webdriver.Chrome(service=Service(driver_path), options=chrome_options)
-    Thread=None
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
         server_socket.bind((host, port))
         server_socket.listen()
@@ -267,18 +240,24 @@ def start_server(host='127.0.0.1', port=65432):
             with conn:
                 print(f"Connected by {addr}")
                 data = conn.recv(1024)  # Receive up to 1024 bytes
+                
                 if not data:
                     break
-                message = data.decode('utf-8')  # Decode received bytes
-                print(f"Received: {message}")
-                if message.strip().lower() == "final stop":
+                message = json.loads(data.decode('utf-8'))  # Parse JSON
+                print(f"Received Type: {message['type']}, Data: {message['data']}")
+                if message['type'] == "STOP":
                     print("Stop message received. Shutting down the server.")
                     conn.sendall(b"Server stopping.")  # Send acknowledgment
                     break
-                elif message.strip().lower() == "stop":
-                    Thread.stop()
+                elif message['type']=="PROFILE":
+                    link=message['data']
+                    print("New profile: ",link)
+                    scroll_profile(link)
+                elif message['type']=='STOP SCROLL':
+                    global STOP
+                    STOP=True
                 else:
-                    link=message.strip().lower()
-                    Thread=StoppableThread(target=start_scroll,args=(driver,link))
-                    Thread.start()
-    
+                    pass
+                
+if __name__=='__main__':
+    start_server()

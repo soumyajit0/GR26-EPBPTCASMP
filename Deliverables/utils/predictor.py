@@ -8,9 +8,9 @@ from nltk.corpus import stopwords
 from nltk import download
 from nltk.data import find
 from sklearn.feature_extraction.text import TfidfVectorizer
+from utils.DBN_ANN import ANN, DBN, RBM, train_ann_model, train_dbn_model
 
-# Import custom models and training functions from DBN_ANN.py
-from DBN_ANN import ANN, DBN, RBM, train_ann_model, train_dbn_model
+models_path, vectorizer_path=os.path.join('pkls','models.pkl'),os.path.join('pkls','vectorizer.pkl')
 
 # Global Personality Definitions
 personality_type = ["IE", "NS", "FT", "JP"]  # Each dichotomy (e.g., IE for Introversion/Extroversion)
@@ -115,13 +115,15 @@ def save_models(models, vectorizer, models_path="models.pkl", vectorizer_path="v
     print(f"✅ Models saved to {models_path}")
     print(f"✅ Vectorizer saved to {vectorizer_path}")
 
-def load_models(models_path, vectorizer_path):
+def load_models():
     """
     Load trained models and vectorizer from disk.
     """
-    with open(models_path, 'rb') as f:
+    current_dir =os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    print("Cur ", current_dir)
+    with open(os.path.join(current_dir,models_path), 'rb') as f:
         models = pickle.load(f)
-    with open(vectorizer_path, 'rb') as f:
+    with open(os.path.join(current_dir,vectorizer_path), 'rb') as f:
         vectorizer = pickle.load(f)
     print(f"✅ Loaded models from {models_path}")
     print(f"✅ Loaded vectorizer from {vectorizer_path}")
@@ -216,10 +218,7 @@ def get_aggregated_details():
 # For testing purposes: load models and perform a test aggregation.
 if __name__ == "__main__":
     try:
-        models, vectorizer = load_models(
-            r"C:\Users\HP\Desktop\final_yr_project\Deliverables\pkls\ANN_pkl\models.pkl",
-            r"C:\Users\HP\Desktop\final_yr_project\Deliverables\pkls\ANN_pkl\vectorizer.pkl"
-        )
+        models, vectorizer = load_models()
         # A diverse list of posts representing different personality aspects:
         posts = [
             "I love spending time alone reading and reflecting on my thoughts.",                # Likely Introverted (I)
