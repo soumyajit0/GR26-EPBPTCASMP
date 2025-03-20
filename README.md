@@ -1,6 +1,6 @@
 ## Final Year Project TMSL CSE Group-26
 
-Aim: Establish relation between personality traits and cognitive ability. 
+Aim: Establish relation between personality traits, cognitive ability and job proficiency. 
 
 Group Mentor: Mrs. Nairanjana Chowdhury
 
