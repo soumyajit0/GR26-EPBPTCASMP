@@ -115,7 +115,6 @@ def set_up_driver():
     chrome_options.add_argument("--window-size=1920,1080")  # Large window size to force rendering
     chrome_options.add_argument("--force-device-scale-factor=1")  # Prevents scaling issues
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")  # Reduces detection
-    chrome_options.add_argument("--disable-popup-blocking")  # Ensures popups don’t block rendering
     chrome_options.add_argument("--disable-features=NetworkService,NetworkServiceInProcess")  # Forces content loading
     current_dir = os.path.dirname(os.path.abspath(__file__))
     extension_directory = os.path.join(current_dir,"extension")
@@ -137,7 +136,7 @@ def scroll_profile(profile_link):
     script = """
     Object.defineProperty(document, 'hidden', {value: false});
     Object.defineProperty(document, 'visibilityState', {value: 'visible'});
-    setInterval(() => {document.dispatchEvent(new Event('visibilitychange'));}, 6000);
+    setInterval(() => {document.dispatchEvent(new Event('visibilitychange'));}, 2000);
     """
     driver.execute_script(script)
     # Time to wait for the page to load completely

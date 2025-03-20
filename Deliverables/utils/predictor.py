@@ -251,7 +251,7 @@ if __name__ == "__main__":
             print("Predicted MBTI for this post:", prediction['MBTI'])
             
             # Update the aggregation with the current post.
-            update_personality_aggregation(post, models, vectorizer)
+            update_personality_aggregation(post,"NONE", models, vectorizer)
             
             # Retrieve the current overall personality and detailed aggregates.
             overall = get_aggregated_personality()

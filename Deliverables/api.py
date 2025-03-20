@@ -2,6 +2,7 @@
 Make sure to run this server on port 8090 or
 change the url path on the background.js script
 '''
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 import os
 import json
 import threading
@@ -66,9 +67,54 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+# Store active WebSocket connections
+connections = set()
+url_to_socket_map = {}
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    """ WebSocket endpoint for real-time communication with frontend """
+    await websocket.accept()
+    global Result, User_name, url_to_socket_map
+    try:
+        while True:
+            data = await websocket.receive_text()
+            message = json.loads(data)
+
+            msg_type = message.get("type")
+            msg_data = message.get("data")
+
+            if msg_type == 'Profile':
+                User_name = "none"
+                Result.clear()
+                link = msg_data  # Profile URL
+                print("New Profile: ", link)
+                
+                # Store WebSocket connection associated with the profile URL
+                url_to_socket_map[link] = websocket  
+
+                reset_personality_aggregation()  # Reset aggregation for a new session
+                send_data(msg_type="PROFILE", msg_data=link)
+
+            elif msg_type == 'Stop_analysis':
+                Result.clear()
+                reset_personality_aggregation()
+                User_name = "none"
+                send_data(msg_type='STOP SCROLL')
+
+    except WebSocketDisconnect:
+        # Remove the disconnected WebSocket from the mapping
+        for url, ws in list(url_to_socket_map.items()):
+            if ws == websocket:
+                del url_to_socket_map[url]
+                break
+        print("WebSocket Disconnected")
+
 @app.get("/")
 async def serve_main():
     return FileResponse("public/html/main.html")
+
 
 
 @app.post("/send_name")
@@ -82,43 +128,15 @@ async def get_user_name(body: Name):
     url = body.url
     print("User:", name, "Url:", url)
     User_name=name
+    # Check if a WebSocket connection exists for this URL
+    websocket = url_to_socket_map.get(url)
+    if websocket:
+        try:
+            await websocket.send_text(json.dumps({"type": "user_name", "name":User_name}))
+        except Exception as e:
+            print(f"Error sending WebSocket message: {e}")
+
     return {"success": True}
-
-@app.get('/get_name')
-async def send_name():
-    global User_name
-    return {"name":User_name}
-
-@app.get("/result")
-async def get_result():
-    return dict(Result)
-
-@app.post("/profile")
-async def receive_profile_link(body:Profile):
-    """
-    Receives and processes the user's name.
-    """
-    global Result,User_name
-    User_name="none"
-    Result.clear()
-    link = body.url
-    print("New Profile: ",link)
-    reset_personality_aggregation()  #Reset aggregation for a new session
-    send_data(msg_type="PROFILE",msg_data=link)
-    return {"success": True}
-
-
-@app.get("/reset")
-def reset_all():
-    """
-    Resets the plot data.
-    """
-    global User_name,Result
-    Result.clear()
-    reset_personality_aggregation()
-    User_name="none"
-    send_data(msg_type='STOP SCROLL')
-    return {"message": "Reset Complete"}
 
 
 @app.post("/api")
@@ -170,16 +188,26 @@ async def analyze_personality(body: Input):
     # Print individual trait aggregates
     aggregates = get_aggregated_details()
     print("Current Aggregation Details:")
+
     for dichotomy, data in aggregates.items():
-        print(f"  {dichotomy}:")
-        for letter, stats in data.items():
-            print(f"    {letter}: count = {stats['count']}, confidence sum = {stats['conf_sum']:.2f}")
+            print(f" {dichotomy}:")
+            for letter, stats in data.items():
+                avg = stats['conf_sum'] / stats['count'] if stats['count'] > 0 else 0.0
+                print(f"   {letter}: count = {stats['count']}, average confidence = {avg:.2f}")
+            print("-" * 50)
     
     #update_frame(url, overall_result)  # Gives output in native window, no longer used
     if overall_result in Result:
         Result[overall_result]+=1
     else:
         Result[overall_result]=1
+    websocket = url_to_socket_map.get(url)
+    if websocket:
+        try:
+            await websocket.send_text(json.dumps({"type": "update", "result":Result,"aggregate":aggregates}))
+        except Exception as e:
+            print(f"Error sending WebSocket message: {e}")
+    
     return {"data": overall_result}
 
 
