@@ -12,6 +12,8 @@ import socket
 import json
 import socket
 import threading
+import random
+from selenium.webdriver.common.action_chains import ActionChains
 
 # File to store the path of the driver (so it only installs once)
 driver_path_file = 'driver_path.pkl'
@@ -51,29 +53,50 @@ def page_has_loaded(driver):
 
 
 
-def login(driver,email,password):
+def human_like_typing(element, text):
+    """Types text into an input field with human-like delays."""
+    for char in text:
+        element.send_keys(char)
+        time.sleep(random.uniform(0.2, 0.4))  # Random delay per character
+
+def login(driver, email, password):
     global Logged_in
     if Logged_in:
         return
-    c=0
-    while c<120:
-        c+=1
+    
+    c = 0
+    while c < 120:
+        c += 1
         if page_has_loaded(driver):
             break
         time.sleep(0.5)
     
+    time.sleep(random.uniform(1, 3))  # Random wait before interacting
+    
     email_input = driver.find_element(By.NAME, "email")
-    email_input.send_keys(email)
-    
-    # Select the input field with name="pass" and enter the value
     pass_input = driver.find_element(By.NAME, "pass")
-    pass_input.send_keys(password)
+    login_button = driver.find_element(By.NAME, "login")  # Updated for button click
     
-    # Send the Enter key to submit the form
-    pass_input.send_keys(Keys.ENTER)
+    # Scroll into view
+    driver.execute_script("arguments[0].scrollIntoView();", email_input)
+    time.sleep(random.uniform(0.5, 1.5))
+    
+    # Click on email field first before typing
+    ActionChains(driver).move_to_element(email_input).click().perform()
+    human_like_typing(email_input, email)
+    
+    time.sleep(random.uniform(0.7, 1.5))  # Short pause between field entries
+    
+    # Click on password field before typing
+    ActionChains(driver).move_to_element(pass_input).click().perform()
+    human_like_typing(pass_input, password)
+    
+    time.sleep(random.uniform(0.5, 2))  # Short pause before submission
+    
+    # Click login button instead of pressing Enter
+    ActionChains(driver).move_to_element(login_button).click().perform()
 
-    # Close the browser after the operation
-    time.sleep(3)  # Sleep for a bit to see the result
+    time.sleep(random.uniform(3, 5))  # Allow time for login process
 
 
 def set_up_driver():
@@ -88,11 +111,12 @@ def set_up_driver():
     chrome_options.add_argument("--disable-background-timer-throttling")
     chrome_options.add_argument("--disable-renderer-backgrounding")
     chrome_options.add_argument("--disable-backgrounding-occluded-windows")
-    #chrome_options.add_argument("--headless")
-    #chrome_options.add_argument("--disable-gpu")
-    # Initialize the Chrome driver with the notification disabled
-    # Load the extension
-    # Load the extension from a directory
+    chrome_options.add_argument("--headless=new")  # Enable headless mode in a way that mimics user behavior
+    chrome_options.add_argument("--window-size=1920,1080")  # Large window size to force rendering
+    chrome_options.add_argument("--force-device-scale-factor=1")  # Prevents scaling issues
+    chrome_options.add_argument("--disable-blink-features=AutomationControlled")  # Reduces detection
+    chrome_options.add_argument("--disable-popup-blocking")  # Ensures popups don’t block rendering
+    chrome_options.add_argument("--disable-features=NetworkService,NetworkServiceInProcess")  # Forces content loading
     current_dir = os.path.dirname(os.path.abspath(__file__))
     extension_directory = os.path.join(current_dir,"extension")
     chrome_options.add_argument(f'--load-extension={extension_directory}')
@@ -134,6 +158,10 @@ def scroll_profile(profile_link):
         # Scroll down to bottom
         print(f"window.scrollTo(0, {height});")
         driver.execute_script(f"window.scrollTo(0, {height});")
+        # dummy user interaction to force render
+        driver.execute_script("window.dispatchEvent(new Event('scroll'));")
+        driver.execute_script("document.body.style.zoom='1.01'")  # Small zoom to force re-render
+        driver.execute_script("document.body.style.zoom='1.0'")  # Reset
         height=min(height+400,last_height)
         # Wait to load page
         time.sleep(SCROLL_PAUSE_TIME)
