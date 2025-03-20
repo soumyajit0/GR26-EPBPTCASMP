@@ -35,7 +35,7 @@
                 <input type="url" id="profileLink" class="form-control" placeholder="Enter Facebook Profile Link" required>
             </div>
             <button type="submit" id="analyzeBtn" class="btn btn-primary">Analyze</button>
-            <button type="button" id="stopBtn" class="btn btn-danger d-none">Stop Analysis</button>
+            <button type="button" id="stopBtn" class="btn btn-danger d-none" >Stop Analysis</button>
         </form>
 
         <div class="mt-4 row text-center">
@@ -86,7 +86,7 @@
             if (fetchInterval) return; // Prevent multiple intervals
 
             fetchUpdates(); // Fetch immediately
-            fetchInterval = setInterval(fetchUpdates, 2000); // Fetch every 2s
+            fetchInterval = setInterval(fetchUpdates,1200); 
 
             // Toggle button visibility
             document.getElementById("analyzeBtn").classList.add("d-none");
@@ -98,12 +98,15 @@
                 clearInterval(fetchInterval);
                 fetchInterval = null;
             }
-
-            // Toggle button visibility
+            console.log("Resetting...");
+            axios.get("http://localhost:8090/reset")
+                .then(response => console.log(response.data))
+                .catch(error => console.error("Error fetching updates:", error));
             document.getElementById("analyzeBtn").classList.remove("d-none");
             document.getElementById("stopBtn").classList.add("d-none");
         }
 
+        
         document.getElementById("stopBtn").addEventListener("click", stopFetchingUpdates);
 
         let ctx = document.getElementById("personalityChart").getContext("2d");
@@ -151,13 +154,12 @@
                 .then(response => {
                     document.getElementById("userName").textContent = response.data.name;
                     if(response.data.name=="none"){
-                        fetchUserName();
+                        setInterval(fetchUserName(),1000);
                         return;
                     }
                     document.getElementById("visualizerTitle").classList.remove("d-none");
                 })
                 .catch(error => console.error("Error fetching name:", error));
-
         }
 
         function fetchUpdates() {

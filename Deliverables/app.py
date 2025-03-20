@@ -8,14 +8,21 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys  # Import Keys class for special keys like Enter
 import time
 from selenium.common.exceptions import NoAlertPresentException
+import socket
+import json
+import socket
+import threading
 
 # File to store the path of the driver (so it only installs once)
 driver_path_file = 'driver_path.pkl'
 EMAIL="8334999569"
 PASSWORD="myfbaccount2024"
 
-import socket
-import json
+STOP=False
+driver=None
+Logged_in=False
+FB_HOMEPAGE=r'https://www.facebook.com/'
+Scroll_thread=None
 
 def dismiss_alert_if_present(driver):
     try:
@@ -23,7 +30,6 @@ def dismiss_alert_if_present(driver):
         alert.dismiss()  # Dismiss the alert
     except NoAlertPresentException:
         pass
-
 
 
 def get_driver_path():
@@ -43,7 +49,7 @@ def page_has_loaded(driver):
     page_state = driver.execute_script('return document.readyState;')
     return page_state == 'complete'
 
-Logged_in=False
+
 
 def login(driver,email,password):
     global Logged_in
@@ -69,22 +75,9 @@ def login(driver,email,password):
     # Close the browser after the operation
     time.sleep(3)  # Sleep for a bit to see the result
 
-def get_user_name(driver):
-    try:
-        h1_element = driver.find_element(By.TAG_NAME, 'h1')
-        NAME = h1_element.text  # Store the text of the first h1 in the NAME variable
-        print(f"User's Name: {NAME}")
-        return NAME
-    except Exception as e:
-        print("An error occurred while finding the h1 element:", e)
-        return "NONE"
 
-STOP=False
-
-# Function to scroll through a user profile
-def scroll_profile(profile_link):
-    global NAME,STOP
-    # Get or install the Chrome driver path
+def set_up_driver():
+    global driver,FB_HOMEPAGE
     chrome_options = webdriver.ChromeOptions()
     prefs = {
         "profile.default_content_setting_values.notifications": 2   # block notifications
@@ -104,11 +97,19 @@ def scroll_profile(profile_link):
     extension_directory = os.path.join(current_dir,"extension")
     chrome_options.add_argument(f'--load-extension={extension_directory}')
     driver_path = get_driver_path()
-    print(driver_path)
     driver = webdriver.Chrome(service=Service(driver_path), options=chrome_options)
+    driver.get(FB_HOMEPAGE)
+    
+
+# Function to scroll through a user profile
+def scroll_profile(profile_link):
+    global STOP,driver
+    # Get or install the Chrome driver path
     # Open the profile link
+    driver.execute_script("window.open('');") 
+    # Switch to the new window and open new URL 
+    driver.switch_to.window(driver.window_handles[1]) 
     driver.get(profile_link)
-    login(driver,EMAIL,PASSWORD)
     script = """
     Object.defineProperty(document, 'hidden', {value: false});
     Object.defineProperty(document, 'visibilityState', {value: 'visible'});
@@ -117,8 +118,6 @@ def scroll_profile(profile_link):
     driver.execute_script(script)
     # Time to wait for the page to load completely
     time.sleep(3)
-    NAME=get_user_name(driver)
-    time.sleep(1)
     SCROLL_PAUSE_TIME = 1
 
     # Get scroll height
@@ -142,62 +141,9 @@ def scroll_profile(profile_link):
         # Calculate new scroll height and compare with last scroll height
         new_height = driver.execute_script("return document.body.scrollHeight")
         last_height = new_height
-        
-        # Close the browser after scrolling
-    time.sleep(15)
-    driver.quit()
-   
-   
-# Function to scroll through a user profile
-def start_scroll(driver,profile_link):
-    # Open the profile link
-    global Logged_in
-    driver.get(profile_link)
-    while True:
-        try:
-            login(driver,EMAIL,PASSWORD)
-            Logged_in=True
-            break
-        except:
-            print("Exception in login")
-            continue
-    script = """
-    Object.defineProperty(document, 'hidden', {value: false});
-    Object.defineProperty(document, 'visibilityState', {value: 'visible'});
-    setInterval(() => {document.dispatchEvent(new Event('visibilitychange'));}, 6000);
-    """
-    driver.execute_script(script)
-    # Time to wait for the page to load completely
-    time.sleep(3)
-    SCROLL_PAUSE_TIME = 1
+    driver.close()
+    driver.switch_to.window(driver.window_handles[0]) 
 
-    # Get scroll height
-    last_height=0
-    while last_height==0:
-        dismiss_alert_if_present(driver)
-        last_height = driver.execute_script("return document.body.scrollHeight")
-    height=min(100,last_height)
-    lim=500
-    cur=0
-    while cur<lim:
-        cur+=1
-        dismiss_alert_if_present(driver)
-        # Scroll down to bottom
-        print(f"window.scrollTo(0, {height});")
-        driver.execute_script(f"window.scrollTo(0, {height});")
-        height=min(height+400,last_height)
-        # Wait to load page
-        time.sleep(SCROLL_PAUSE_TIME)
-
-        # Calculate new scroll height and compare with last scroll height
-        new_height = driver.execute_script("return document.body.scrollHeight")
-        last_height = new_height
-        
-        # Close the browser after scrolling
-    
-    
-import socket
-import threading
 
 
 class StoppableThread(threading.Thread):
@@ -217,10 +163,6 @@ class StoppableThread(threading.Thread):
 from __init__ import set_dir
 set_dir()
 
-
-    
-    
-    
 #--------------------------For verification dont touch -------------------------------------
 #-------------------------------------------------------------------------------------------
 def start_server(host='127.0.0.1', port=65431):
@@ -231,6 +173,7 @@ def start_server(host='127.0.0.1', port=65431):
     :param port: Port to bind the server to.
     
     """
+    global Logged_in,driver,STOP,Scroll_thread
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
         server_socket.bind((host, port))
         server_socket.listen()
@@ -240,22 +183,38 @@ def start_server(host='127.0.0.1', port=65431):
             with conn:
                 print(f"Connected by {addr}")
                 data = conn.recv(1024)  # Receive up to 1024 bytes
-                
                 if not data:
                     break
                 message = json.loads(data.decode('utf-8'))  # Parse JSON
                 print(f"Received Type: {message['type']}, Data: {message['data']}")
-                if message['type'] == "STOP":
+                if message['type'] == "FINAL STOP":
                     print("Stop message received. Shutting down the server.")
                     conn.sendall(b"Server stopping.")  # Send acknowledgment
+                    driver.quit()
                     break
                 elif message['type']=="PROFILE":
+                    STOP=False
                     link=message['data']
                     print("New profile: ",link)
-                    scroll_profile(link)
-                elif message['type']=='STOP SCROLL':
-                    global STOP
+                    #scroll_profile(link)
+                    Scroll_thread=StoppableThread(target=scroll_profile,args=(link,))
+                    Scroll_thread.start()
+                elif message['type']=="STOP SCROLL":
                     STOP=True
+                    print("STOP resquested...")
+                    Scroll_thread.stop()
+                elif message['type']=='LOGIN':
+                    if Logged_in:
+                        return
+                    set_up_driver()
+                    while True:
+                        try:
+                            login(driver,EMAIL,PASSWORD)
+                            Logged_in=True
+                            break
+                        except:
+                            print("Exception in login")
+                            continue
                 else:
                     pass
                 

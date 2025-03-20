@@ -27,6 +27,8 @@
 
 window.onurlchange =event => {
   chrome.runtime.sendMessage({ action: 'Reset'});
+  if(!isFacebookProfilePage())
+    return;
   waitForH1AndSendName();
   console.log("URL CHANGED");
 }
@@ -39,7 +41,6 @@ const MAX_REQUESTS = 30;
 let totalRequest = 0;
 async function check_for_image(post) {
   let p1 = post?.parentElement?.parentElement?.parentElement;
-  console.log(p1);
   // Proceed to the next lines only if p1 exists
   if (!p1) {
     return Promise.resolve([]);
@@ -69,6 +70,8 @@ async function expandPost(post) {
 }
 
 function waitForH1AndSendName() {
+  if(!isFacebookProfilePage())
+    return;
   const observer = new MutationObserver((mutations, obs) => {
       const firstH1 = document.querySelector('h1');
       if (firstH1) {
@@ -79,6 +82,13 @@ function waitForH1AndSendName() {
 
   observer.observe(document.body, { childList: true, subtree: true });
 }
+
+function isFacebookProfilePage() {
+  const url = window.location.href;
+  const profileRegex = /^https:\/\/www\.facebook\.com\/(profile\.php\?id=\d+|[a-zA-Z0-9.]+)$/;
+  return profileRegex.test(url);
+}
+
 
 async function sendName(){
 
@@ -98,19 +108,19 @@ async function sendName(){
       } else if (h1Text.endsWith(verifiedAccountEnglish)) {
           h1Text = h1Text.slice(0, -verifiedAccountEnglish.length).trim();
       }
-      console.log(h1Text);
       const name=h1Text;
       chrome.runtime.sendMessage({ action: 'sendName', Name: name,url:location.href});
   }
 }
 
 async function searchPost() {
+  if(!isFacebookProfilePage())
+    return;
   let posts = [];
   const allPosts = document.querySelectorAll(message_selector_uri);
 
   for (let i = 0; i < allPosts.length; i++) {
     const post = allPosts[i];
-    console.log(post);
     if (!post.is_visited) {
       posts.push(post);
     }
@@ -122,7 +132,6 @@ async function searchPost() {
         await expandPost(post);
         const postText = post.innerText;
         let img_links=await check_for_image(post);
-        console.log(img_links);
         post.is_visited = true;
         if (postText) {
           chrome.runtime.sendMessage({ action: 'sendPost', postText: postText,imgs:img_links,url:location.href});

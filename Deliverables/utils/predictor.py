@@ -12,6 +12,8 @@ from utils.DBN_ANN import ANN, DBN, RBM, train_ann_model, train_dbn_model
 
 models_path, vectorizer_path=os.path.join('pkls','models.pkl'),os.path.join('pkls','vectorizer.pkl')
 
+url=None
+
 # Global Personality Definitions
 personality_type = ["IE", "NS", "FT", "JP"]  # Each dichotomy (e.g., IE for Introversion/Extroversion)
 # Mapping letters to binary values: e.g., I=0, E=1, etc.
@@ -139,7 +141,9 @@ personality_aggregation = {
     "JP": {"J": {"count": 0, "conf_sum": 0.0}, "P": {"count": 0, "conf_sum": 0.0}}
 }
 
-def update_personality_aggregation(post_text, models, vectorizer):
+
+
+def update_personality_aggregation(post_text,base_url, models, vectorizer):
     """
     Processes a single post's text, predicts personality dichotomies,
     and updates the global aggregation.
@@ -149,7 +153,11 @@ def update_personality_aggregation(post_text, models, vectorizer):
         models (dict): Models for each dichotomy.
         vectorizer: A fitted TF-IDF vectorizer.
     """
-    global personality_aggregation
+    global personality_aggregation,url
+    if url and url!=base_url:
+        return
+    if not url:
+        url=base_url
     predictions = predict_personality(post_text, models, vectorizer)
     for dichotomy in personality_type:
         pred_info = predictions[dichotomy]
@@ -196,7 +204,8 @@ def reset_personality_aggregation():
     """
     Resets the global personality aggregation to its initial state.
     """
-    global personality_aggregation
+    global personality_aggregation,url
+    url=None
     personality_aggregation = {
         "IE": {"I": {"count": 0, "conf_sum": 0.0}, "E": {"count": 0, "conf_sum": 0.0}},
         "NS": {"N": {"count": 0, "conf_sum": 0.0}, "S": {"count": 0, "conf_sum": 0.0}},
