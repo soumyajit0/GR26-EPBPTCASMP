@@ -24,7 +24,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     fetch('http://localhost:8090/send_name', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({url:request.url, name: request.Name })
+      body: JSON.stringify({url:request.url, name: request.Name,dp:request.dp })
     })
     .then(response => response.json())
     .then(data => {

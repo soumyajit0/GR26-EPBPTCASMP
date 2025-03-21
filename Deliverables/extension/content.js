@@ -83,6 +83,27 @@ function waitForH1AndSendName() {
   observer.observe(document.body, { childList: true, subtree: true });
 }
 
+
+function getProfilePhotoUrl(name) {
+  let svgElement = document.querySelector(`svg[aria-label="${name}"]`);
+  
+  if (!svgElement) {
+      console.log(`No SVG found with aria-label="${name}"`);
+      return null;
+  }
+
+  // Select the <image> inside the SVG
+  let imageElement = svgElement.querySelector('image');
+  let imageUrl = imageElement ? imageElement.getAttribute('xlink:href') : null;
+
+  console.log("SVG Element:", svgElement);
+  console.log("Image URL:", imageUrl);
+
+  return imageUrl;
+}
+
+
+
 function isFacebookProfilePage() {
   const url = window.location.href;
   const profileRegex = /^https:\/\/www\.facebook\.com\/(profile\.php\?id=\d+|[a-zA-Z0-9.]+)$/;
@@ -102,14 +123,14 @@ async function sendName(){
       const verifiedAccountBengali = "ভেরিফায়েড অ্যাকাউন্ট";
       const verifiedAccountEnglish = "Verified account";
 
-      // Remove "ভেরিফায়েড অ্যাকাউন্ট" or "verified account" if they appear at the end
       if (h1Text.endsWith(verifiedAccountBengali)) {
           h1Text = h1Text.slice(0, -verifiedAccountBengali.length).trim();
       } else if (h1Text.endsWith(verifiedAccountEnglish)) {
           h1Text = h1Text.slice(0, -verifiedAccountEnglish.length).trim();
       }
       const name=h1Text;
-      chrome.runtime.sendMessage({ action: 'sendName', Name: name,url:location.href});
+      const profileUrl=getProfilePhotoUrl(name);
+      chrome.runtime.sendMessage({ action: 'sendName', Name: name,url:location.href,dp:profileUrl});
   }
 }
 

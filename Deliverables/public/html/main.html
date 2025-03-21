@@ -38,8 +38,11 @@
             <button type="button" id="stopBtn" class="btn btn-danger d-none" >Stop Analysis</button>
         </form>
         
-        <div class="mt-4 row text-center">
-            <h3 id="visualizerTitle" class="d-none">Personality Visualizer Of <span id="userName"></span></h3>
+        <div class="mt-4 row text-center" id="Main">
+            <h3 id="visualizerTitle" class="d-none">
+                Personality Visualizer Of <span id="userName"></span>
+            </h3>
+            
         </div>
         
         <div class="mt-4 row" id="style1" style="padding:25px;border-radius:10px;">
@@ -69,12 +72,13 @@
 
     <script>
         let socket = null;
-        
+        let stopped=false;
         function connectWebSocket() {
             socket = new WebSocket("ws://localhost:8090/ws");
     
             socket.onopen = function () {
                 console.log("WebSocket Connected.");
+                stopped=false;
             };
     
             socket.onmessage = function (event) {
@@ -82,8 +86,13 @@
     
                 if (data.type === "user_name") {
                     updateUserName(data.name);
+                    console.log("DP:"+data.dp);
+                    loadUserProfilePicture(data.dp);
+                    stopped=false;
                 } 
                 else if (data.type === "update") {
+                    if(stopped)
+                        return;
                     updateChart(data.result);
                     displayPersonalityResults(data.aggregate);
                 } 
@@ -99,6 +108,20 @@
             socket.onerror = function (error) {
                 console.error("WebSocket Error:", error);
             };
+        }
+
+        function loadUserProfilePicture(dpUrl) {
+            let dpContainer = document.getElementById("dpContainer");
+            if (!dpContainer) {
+                dpContainer = document.createElement("div");
+                dpContainer.id = "dpContainer";
+                dpContainer.className = "text-center mt-3";
+                document.getElementById("Main").appendChild(dpContainer);
+            }
+            dpContainer.innerHTML='';
+            dpContainer.innerHTML = `<img id="userDp" src="${dpUrl}" alt="Profile Picture" class="rounded-circle shadow-lg" 
+                                         style="width: 120px; height: 120px; border: 3px solid #007bff;">`;
+            
         }
     
         document.getElementById("profileForm").addEventListener("submit", function(event) {
@@ -122,9 +145,13 @@
         
         function resetResults() {
             // Hide personality visualizer title
+            stopped=false;
             document.getElementById("visualizerTitle").classList.add("d-none");
             document.getElementById("userName").textContent = "";
-        
+            let dpContainer = document.getElementById("dpContainer");
+            if (dpContainer) {
+                dpContainer.remove(); // Removes the element from the DOM
+            }
             // Hide the table and chart
             document.getElementById("tableContainer").classList.add("d-none");
             document.getElementById("chartContainer").classList.add("d-none");
@@ -145,6 +172,7 @@
         }
     
         function stopFetchingUpdates() {
+            stopped=true;
             if (socket && socket.readyState === WebSocket.OPEN) {
                 socket.send(JSON.stringify({ type: "Stop_analysis" }));
             }

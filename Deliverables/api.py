@@ -42,10 +42,10 @@ class Input(BaseModel): #User's post
 class Name(BaseModel):  #User's name
     url: str
     name: str
+    dp:str
     
 class Profile(BaseModel):   #web service sends a new profile link
     url:str
-
 
 
 
@@ -90,10 +90,8 @@ async def websocket_endpoint(websocket: WebSocket):
                 Result.clear()
                 link = msg_data  # Profile URL
                 print("New Profile: ", link)
-                
                 # Store WebSocket connection associated with the profile URL
                 url_to_socket_map[link] = websocket  
-
                 reset_personality_aggregation()  # Reset aggregation for a new session
                 send_data(msg_type="PROFILE", msg_data=link)
 
@@ -116,7 +114,6 @@ async def serve_main():
     return FileResponse("public/html/main.html")
 
 
-
 @app.post("/send_name")
 async def get_user_name(body: Name):
     """
@@ -128,11 +125,12 @@ async def get_user_name(body: Name):
     url = body.url
     print("User:", name, "Url:", url)
     User_name=name
+    dp_url=body.dp
     # Check if a WebSocket connection exists for this URL
     websocket = url_to_socket_map.get(url)
     if websocket:
         try:
-            await websocket.send_text(json.dumps({"type": "user_name", "name":User_name}))
+            await websocket.send_text(json.dumps({"type": "user_name", "name":User_name,"dp":dp_url}))
         except Exception as e:
             print(f"Error sending WebSocket message: {e}")
 
@@ -195,7 +193,6 @@ async def analyze_personality(body: Input):
                 avg = stats['conf_sum'] / stats['count'] if stats['count'] > 0 else 0.0
                 print(f"   {letter}: count = {stats['count']}, average confidence = {avg:.2f}")
             print("-" * 50)
-    
     #update_frame(url, overall_result)  # Gives output in native window, no longer used
     if overall_result in Result:
         Result[overall_result]+=1
@@ -207,9 +204,7 @@ async def analyze_personality(body: Input):
             await websocket.send_text(json.dumps({"type": "update", "result":Result,"aggregate":aggregates}))
         except Exception as e:
             print(f"Error sending WebSocket message: {e}")
-    
     return {"data": overall_result}
-
 
 
 async def set_up():
@@ -231,8 +226,12 @@ async def set_up():
         print('--------------------------------------------')
         exit()
 
+
+
 if __name__ == '__main__':
     uvicorn.run("api:app", port=8090, reload=False)
+
+
 
 # --------------------------For verification don't touch -------------------------------------
 # --------------------------------------------------------------------------------------------
