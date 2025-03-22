@@ -25,6 +25,103 @@
         th, td {
             text-align: center;
         }
+
+        .left-align {
+            text-align: left !important;
+        }
+        
+        /* Improve table styling */
+        .career-table {
+            border-collapse: collapse;
+            width: 100%;
+            background-color: #ffffff;
+        }
+        
+        .career-table th,
+        .career-table td {
+            padding: 12px;
+            vertical-align: middle;
+            text-align: left;
+            word-wrap: break-word; /* Ensures text wraps properly */
+            overflow: hidden;
+        }
+        
+        /* Prevent table overflow issues */
+        .table-responsive {
+            max-width: 100%;
+            overflow-x: auto;
+        }
+        
+        /* Improve table header */
+        .career-table thead {
+            background-color: #343a40;
+            color: white;
+        }
+        
+        /* Row hover effect */
+        .career-table tbody tr:hover {
+            background-color: #f8f9fa;
+            transition: background-color 0.3s ease-in-out;
+        }
+        
+        /* Add border styling */
+        .career-table th,
+        .career-table td {
+            border: 1px solid #dee2e6;
+        }
+        
+        /* Responsive for small screens */
+        @media (max-width: 768px) {
+            .career-table th,
+            .career-table td {
+                font-size: 14px;
+                padding: 8px;
+            }
+        }
+        #goodQualitiesList, #needsImprovementList {
+            text-align: left;
+            padding-left: 15px; /* Adds spacing */
+        }
+        
+        /* Style list items for better readability */
+        .list-group-item {
+            font-size: 16px;
+            border: none;
+            background-color: #f8f9fa;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+        }
+        
+        /* Icons alignment */
+        .list-group-item i {
+            font-size: 18px;
+            margin-right: 10px;
+        }
+        
+        /* Make sure the text in the career table is left-aligned */
+        .left-align {
+            text-align: left !important;
+        }
+        
+        /* Improve overall card styling */
+        .card {
+            text-align: left; /* Ensures text inside cards is left-aligned */
+        }        
+
+        /* Fade-in effect for table and chart */
+#tableContainer, #chartContainer {
+    transition: opacity 0.5s ease-in-out;
+}
+
+/* Centered Loading Animation */
+#loadingAnimation {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 150px;
+}
     </style>
 </head>
 <body>
@@ -48,6 +145,12 @@
 
         <!-- Main Personality Analysis Section -->
         <div class="mt-4 row" id="style1" style="padding:25px;border-radius:10px;">
+            <!-- Loading Animation -->
+            <div class="col-12 text-center d-none" id="loadingAnimation">
+                <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;"></div>
+                <p class="mt-2 text-primary">Analyzing personality...</p>
+            </div>
+        
             <!-- Table on the left -->
             <div class="col-md-6 d-none" id="tableContainer">
                 <h4>Personality Traits</h4>
@@ -61,15 +164,14 @@
                     <tbody id="personalityTable"></tbody>
                 </table>
             </div>
-
+        
             <!-- Chart on the right -->
             <div class="col-md-6 d-none" id="chartContainer">
                 <h4>Personality Distribution</h4>
                 <canvas id="personalityChart" class="chart-container"></canvas>
             </div>
         </div>
-
-    </div> <!-- End of Main Container -->
+    </div>
 
     <div class="container text-center">
         <!-- Strengths & Weaknesses Section -->
@@ -87,27 +189,30 @@
                 </div>
             </div>
         </div>
-
+    
         <!-- Suitable Careers Section -->
         <div class="mt-5 d-none" id="career">
             <h4 class="text-info"><i class="bi bi-briefcase-fill"></i> Best Career Paths for <span id="MBTI_type"></span></h4>
-            <table class="table table-hover table-bordered shadow mt-3">
-                <thead class="table-dark">
-                    <tr>
-                        <th>Career</th>
-                        <th>Why It's Suitable</th>
-                    </tr>
-                </thead>
-                <tbody id="careerTable"></tbody>
-            </table>
+            <div class="table-responsive"> <!-- Responsive wrapper to prevent overflow -->
+                <table class="table table-hover table-bordered shadow mt-3 career-table">
+                    <thead class="table-dark">
+                        <tr>
+                            <th class="left-align">Career</th>
+                            <th class="left-align">Why It's Suitable</th>
+                        </tr>
+                    </thead>
+                    <tbody id="careerTable"></tbody>
+                </table>
+            </div>
         </div>
     </div>
-
+    
     
 
     <script>
         let socket = null;
         let stopped=false;
+        let loading=true;
         let lastPredictedPersonality = null; // Store the last personality type to avoid duplicate API calls
 
 
@@ -166,8 +271,8 @@
         document.getElementById("profileForm").addEventListener("submit", function(event) {
             event.preventDefault();
             const profileLink = document.getElementById("profileLink").value;
-        
             // Reset previous results
+            showLoadingAnimation();
             resetResults();
         
             document.getElementById('style1').style.backgroundColor = 'antiquewhite';
@@ -185,6 +290,7 @@
         function resetResults() {
             // Hide personality visualizer title
             stopped = false;
+            loading=true;
             document.getElementById("visualizerTitle").classList.add("d-none");
             document.getElementById("userName").textContent = "";
             lastPredictedPersonality = null;
@@ -255,6 +361,10 @@
         });
     
         function updateChart(data) {
+            if(loading){
+                loading=false;
+                hideLoadingAnimation();
+            }
             document.getElementById("tableContainer").classList.remove("d-none");
             document.getElementById("chartContainer").classList.remove("d-none");
     
@@ -423,7 +533,15 @@
     
             return html;
         }
-    
+        
+        function showLoadingAnimation() {
+            document.getElementById("loadingAnimation").classList.remove("d-none");
+        }
+        
+        function hideLoadingAnimation() {
+            document.getElementById("loadingAnimation").classList.add("d-none");
+        }
+
         connectWebSocket();
     </script>    
 </body>
