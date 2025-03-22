@@ -28,23 +28,25 @@
     </style>
 </head>
 <body>
-    <div class="container text-center">
+    <div class="container text-center" id="First">
         <h2 class="mb-4">Facebook Profile Personality Visualizer</h2>
+
         <form id="profileForm">
             <div class="mb-3">
                 <input type="url" id="profileLink" class="form-control" placeholder="Enter Facebook Profile Link" required>
             </div>
             <button type="submit" id="analyzeBtn" class="btn btn-primary">Analyze</button>
-            <button type="button" id="stopBtn" class="btn btn-danger d-none" >Stop Analysis</button>
+            <button type="button" id="stopBtn" class="btn btn-danger d-none">Stop Analysis</button>
         </form>
-        
+
         <div class="mt-4 row text-center" id="Main">
             <h3 id="visualizerTitle" class="d-none">
                 Personality Visualizer Of <span id="userName"></span>
             </h3>
             
         </div>
-        
+
+        <!-- Main Personality Analysis Section -->
         <div class="mt-4 row" id="style1" style="padding:25px;border-radius:10px;">
             <!-- Table on the left -->
             <div class="col-md-6 d-none" id="tableContainer">
@@ -56,23 +58,59 @@
                             <th>Score</th>
                         </tr>
                     </thead>
-                    <tbody id="personalityTable">
-                        <!-- Rows will be added dynamically -->
-                    </tbody>
+                    <tbody id="personalityTable"></tbody>
                 </table>
             </div>
-        
+
             <!-- Chart on the right -->
             <div class="col-md-6 d-none" id="chartContainer">
                 <h4>Personality Distribution</h4>
                 <canvas id="personalityChart" class="chart-container"></canvas>
             </div>
         </div>
+
+    </div> <!-- End of Main Container -->
+
+    <div class="container text-center">
+        <!-- Strengths & Weaknesses Section -->
+        <div class="row mt-4 d-none" id="st_wk_table">
+            <div class="col-md-6">
+                <div class="card shadow p-3">
+                    <h5 class="text-success"><i class="bi bi-check-circle-fill"></i> Strengths</h5>
+                    <ul id="goodQualitiesList" class="list-group list-group-flush"></ul>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card shadow p-3">
+                    <h5 class="text-danger"><i class="bi bi-exclamation-triangle-fill"></i> Areas for Improvement</h5>
+                    <ul id="needsImprovementList" class="list-group list-group-flush"></ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Suitable Careers Section -->
+        <div class="mt-5 d-none" id="career">
+            <h4 class="text-info"><i class="bi bi-briefcase-fill"></i> Best Career Paths for <span id="MBTI_type"></span></h4>
+            <table class="table table-hover table-bordered shadow mt-3">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Career</th>
+                        <th>Why It's Suitable</th>
+                    </tr>
+                </thead>
+                <tbody id="careerTable"></tbody>
+            </table>
+        </div>
     </div>
+
+    
 
     <script>
         let socket = null;
         let stopped=false;
+        let lastPredictedPersonality = null; // Store the last personality type to avoid duplicate API calls
+
+
         function connectWebSocket() {
             socket = new WebSocket("ws://localhost:8090/ws");
     
@@ -112,17 +150,18 @@
 
         function loadUserProfilePicture(dpUrl) {
             let dpContainer = document.getElementById("dpContainer");
+        
+            // If container doesn't exist, create it
             if (!dpContainer) {
                 dpContainer = document.createElement("div");
                 dpContainer.id = "dpContainer";
                 dpContainer.className = "text-center mt-3";
                 document.getElementById("Main").appendChild(dpContainer);
             }
-            dpContainer.innerHTML='';
+        
             dpContainer.innerHTML = `<img id="userDp" src="${dpUrl}" alt="Profile Picture" class="rounded-circle shadow-lg" 
-                                         style="width: 120px; height: 120px; border: 3px solid #007bff;">`;
-            
-        }
+                                                 style="width: 120px; height: 120px; border: 3px solid #007bff;">`;
+        }        
     
         document.getElementById("profileForm").addEventListener("submit", function(event) {
             event.preventDefault();
@@ -145,13 +184,16 @@
         
         function resetResults() {
             // Hide personality visualizer title
-            stopped=false;
+            stopped = false;
             document.getElementById("visualizerTitle").classList.add("d-none");
             document.getElementById("userName").textContent = "";
+            lastPredictedPersonality = null;
+            
             let dpContainer = document.getElementById("dpContainer");
             if (dpContainer) {
-                dpContainer.remove(); // Removes the element from the DOM
+                dpContainer.remove(); // Removes the profile picture
             }
+        
             // Hide the table and chart
             document.getElementById("tableContainer").classList.add("d-none");
             document.getElementById("chartContainer").classList.add("d-none");
@@ -169,7 +211,10 @@
             if (existingResult) {
                 existingResult.remove();
             }
-        }
+        
+            document.getElementById("st_wk_table").classList.add("d-none");
+            document.getElementById("career").classList.add("d-none");
+        }        
     
         function stopFetchingUpdates() {
             stopped=true;
@@ -226,18 +271,19 @@
             personalityChart.update();
         }
     
-        function displayPersonalityResults(data) {
+        async function displayPersonalityResults(data) {
             let result = calculatePersonality(data);
-    
-            let container = document.querySelector(".container");
+            let newPersonality = result.personality;
+            
+            let container = document.getElementById("First");
             let existingResult = document.getElementById("personality-result");
-    
+        
             if (!existingResult) {
                 existingResult = document.createElement("div");
                 existingResult.id = "personality-result";
                 container.appendChild(existingResult);
             }
-    
+        
             existingResult.innerHTML = `
                 <div class="alert alert-info mt-4 p-4 border rounded shadow" style="background-color: #e3f2fd; border-left: 5px solid #0d6efd;">
                     <h4 class="text-primary text-center">Predicted Personality Type: <strong>${result.personality}</strong></h4>
@@ -247,7 +293,71 @@
                     </div>
                 </div>
             `;
+        
+            // Call the API only if the personality type has changed
+            if (newPersonality !== lastPredictedPersonality) {
+                lastPredictedPersonality = newPersonality;
+        
+                try {
+                    let response = await fetch(`/job_result?mbti_type=${newPersonality}`);
+                    let personalityData = await response.json();
+        
+                    if (!personalityData || personalityData.error) {
+                        console.error("Invalid personality type:", newPersonality);
+                        return;
+                    }
+        
+                    // Update the UI with fetched personality details
+                    updatePersonalityUI(newPersonality, result.confidence, personalityData);
+        
+                } catch (error) {
+                    console.error("Error fetching MBTI details:", error);
+                }
+            }
         }
+        
+        function updatePersonalityUI(personality, confidence, data) {
+            
+            document.getElementById("st_wk_table").classList.remove("d-none");
+            document.getElementById("career").classList.remove("d-none");
+            let goodQualitiesList = document.getElementById("goodQualitiesList");
+            let needsImprovementList = document.getElementById("needsImprovementList");
+            let careerTable = document.getElementById("careerTable");
+            document.getElementById("MBTI_type").innerText=personality;
+
+            if (!goodQualitiesList || !needsImprovementList || !careerTable) {
+                console.error("Error: One or more elements are missing in the HTML!");
+                return;
+            }
+        
+            goodQualitiesList.innerHTML = "";
+            needsImprovementList.innerHTML = "";
+            careerTable.innerHTML = "";
+        
+            data.good_qualities.forEach(quality => {
+                let li = document.createElement("li");
+                li.classList.add("list-group-item");
+                li.innerHTML = `<i class="bi bi-check2-circle text-success"></i> ${quality}`;
+                goodQualitiesList.appendChild(li);
+            });
+        
+            data.needs_improvement.forEach(improvement => {
+                let li = document.createElement("li");
+                li.classList.add("list-group-item");
+                li.innerHTML = `<i class="bi bi-x-circle text-danger"></i> ${improvement}`;
+                needsImprovementList.appendChild(li);
+            });
+        
+            data.suitable_careers.forEach(career => {
+                let row = `<tr>
+                    <td><strong>${career.career}</strong></td>
+                    <td>${career.reason}</td>
+                </tr>`;
+                careerTable.innerHTML += row;
+            });
+        }
+        
+
     
         function calculatePersonality(data) {
             let personality = "";

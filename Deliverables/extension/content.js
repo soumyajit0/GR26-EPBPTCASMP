@@ -1,3 +1,5 @@
+let name_sent=false;
+
 //The below is a function that detects url change events
 (() => {
   const hasNativeEvent = Object.keys(window).includes('onurlchange')
@@ -27,6 +29,7 @@
 
 window.onurlchange =event => {
   chrome.runtime.sendMessage({ action: 'Reset'});
+  name_sent=false;
   if(!isFacebookProfilePage())
     return;
   waitForH1AndSendName();
@@ -70,7 +73,7 @@ async function expandPost(post) {
 }
 
 function waitForH1AndSendName() {
-  if(!isFacebookProfilePage())
+  if(!isFacebookProfilePage() ||name_sent)
     return;
   const observer = new MutationObserver((mutations, obs) => {
       const firstH1 = document.querySelector('h1');
@@ -130,6 +133,7 @@ async function sendName(){
       }
       const name=h1Text;
       const profileUrl=getProfilePhotoUrl(name);
+      name_sent=true;
       chrome.runtime.sendMessage({ action: 'sendName', Name: name,url:location.href,dp:profileUrl});
   }
 }

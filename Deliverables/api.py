@@ -2,7 +2,7 @@
 Make sure to run this server on port 8090 or
 change the url path on the background.js script
 '''
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect,Query
 import os
 import json
 import threading
@@ -121,7 +121,7 @@ async def get_user_name(body: Name):
     """
     global User_name
     name = body.name
-    name = " ".join(name.split(" ")[:2])
+    #name = " ".join(name.split(" ")[:2])
     url = body.url
     print("User:", name, "Url:", url)
     User_name=name
@@ -207,6 +207,33 @@ async def analyze_personality(body: Input):
     return {"data": overall_result}
 
 
+
+@app.get('/job_result')
+def get_mbti_details(mbti_type: str = Query(None, title="MBTI Personality Type")):
+    file_path = os.path.join(os.path.dirname(__file__), "job_data.json")
+
+    # Load MBTI data
+    try:
+        with open(file_path, "r") as file:
+            data = json.load(file)
+    except FileNotFoundError:
+        return {"error": "job_data.json file not found"}
+    except json.JSONDecodeError:
+        return {"error": "Invalid JSON format in job_data.json"}
+
+    # Ensure mbti_type is provided and exists in data
+    if not mbti_type:
+        return {"error": "Missing mbti_type parameter"}
+
+    mbti_data = data.get(mbti_type.upper())
+    
+    if not mbti_data:
+        return {"error": "Personality type not found"}
+
+    return {"personality": mbti_type.upper(), **mbti_data}
+
+
+
 async def set_up():
     """
     Loads the models and vectorizer required for personality prediction and stores them globally.
@@ -230,7 +257,6 @@ async def set_up():
 
 if __name__ == '__main__':
     uvicorn.run("api:app", port=8090, reload=False)
-
 
 
 # --------------------------For verification don't touch -------------------------------------
