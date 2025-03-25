@@ -178,11 +178,11 @@ async def analyze_personality(body: Input):
             print(expr)
 
     # Update global personality aggregation with the combined text
-    update_personality_aggregation(combined_text,url, models, vectorizer)
+    current_personality=update_personality_aggregation(combined_text,url, models, vectorizer)
     overall_result = get_aggregated_personality()
     
-    print("Aggregated MBTI Prediction:", overall_result)
-    
+    #print("Aggregated MBTI Prediction:", overall_result)
+    print("Current MBTI Prediction:",current_personality)
     # Print individual trait aggregates
     aggregates = get_aggregated_details()
     print("Current Aggregation Details:")
@@ -194,17 +194,17 @@ async def analyze_personality(body: Input):
                 print(f"   {letter}: count = {stats['count']}, average confidence = {avg:.2f}")
             print("-" * 50)
     #update_frame(url, overall_result)  # Gives output in native window, no longer used
-    if overall_result in Result:
-        Result[overall_result]+=1
+    if current_personality in Result:
+        Result[current_personality]+=1
     else:
-        Result[overall_result]=1
+        Result[current_personality]=1
     websocket = url_to_socket_map.get(url)
     if websocket:
         try:
             await websocket.send_text(json.dumps({"type": "update", "result":Result,"aggregate":aggregates}))
         except Exception as e:
             print(f"Error sending WebSocket message: {e}")
-    return {"data": overall_result}
+    return {"data": current_personality}
 
 
 

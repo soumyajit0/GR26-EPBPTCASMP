@@ -72,18 +72,65 @@ async function expandPost(post) {
   }
 }
 
+// function waitForH1AndSendName() {
+//   if(!isFacebookProfilePage() ||name_sent)
+//     return;
+//   const observer = new MutationObserver((mutations, obs) => {
+//       const firstH1 = document.querySelector('h1');
+//       if (firstH1) {
+//           sendName(); // Call your function once the <h1> is found
+//           obs.disconnect(); // Stop observing once done
+//       }
+//   });
+
+//   observer.observe(document.body, { childList: true, subtree: true });
+// }
+
 function waitForH1AndSendName() {
-  if(!isFacebookProfilePage() ||name_sent)
-    return;
+  if (!isFacebookProfilePage() || name_sent) return;
+
+  let retries = 0;
+  const maxRetries = 5; // Adjust as needed
+  const baseDelay = 500; // Initial delay
+
   const observer = new MutationObserver((mutations, obs) => {
-      const firstH1 = document.querySelector('h1');
-      if (firstH1) {
-          sendName(); // Call your function once the <h1> is found
-          obs.disconnect(); // Stop observing once done
-      }
+    const firstH1 = document.querySelector('h1');
+    if (firstH1) {
+      sendName();
+      obs.disconnect();
+    }
   });
 
   observer.observe(document.body, { childList: true, subtree: true });
+
+  function retrySendingName() {
+    const firstH1 = document.querySelector('h1');
+    if (firstH1) {
+      sendName();
+    } else if (retries < maxRetries) {
+      retries++;
+      setTimeout(retrySendingName, baseDelay * (2 ** retries)); // Exponential backoff
+    } else {
+      console.log("Retry limit reached. Attempting fallback...");
+      fallbackSendName(); // Fallback approach
+    }
+  }
+
+  setTimeout(retrySendingName, baseDelay);
+}
+
+// Fallback: Extract a name from the URL if h1 isn't found
+function fallbackSendName() {
+  if (name_sent) return;
+
+  let extractedName = location.pathname.split('/').filter(Boolean).pop();
+  if (extractedName) {
+    extractedName = extractedName.replace(/\?.*/, ''); // Remove query params if any
+    chrome.runtime.sendMessage({ action: 'sendName', Name: extractedName, url: location.href, dp: null });
+    name_sent = true;
+  } else {
+    console.log("Failed to extract a name from the URL.");
+  }
 }
 
 

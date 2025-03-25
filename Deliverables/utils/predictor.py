@@ -170,6 +170,7 @@ def update_personality_aggregation(post_text,base_url, models, vectorizer):
         letter = b_Pers_list[idx][binary_pred]
         personality_aggregation[dichotomy][letter]["count"] += 1
         personality_aggregation[dichotomy][letter]["conf_sum"] += confidence
+    return predictions['MBTI']
 
 def get_aggregated_personality():
     """
