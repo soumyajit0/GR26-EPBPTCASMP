@@ -1,0 +1,36 @@
+{
+  "manifest_version": 2,
+  "name": "BIG 5",
+  "version": "1.0.0",
+  "description": "Get Peronality Test. Simple.",
+  "icons": {
+    "48": "assets/icon.png",
+    "96": "assets/icon.png"
+  },
+  
+  "permissions": ["contextMenus", "tabs", "activeTab","https://api.www.facebook.com/*"],
+  "background": {
+    "scripts": ["js/background.js"],
+    "persistent": false
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.facebook.com/*"],
+      "js": ["lib/apex-charts/apexcharts.min.js", "js/content.js"],
+      "css": ["css/styles.css"],
+      "run_at": "document_end"
+    },
+    {
+      "matches": ["<all_urls>"],
+      "js": ["lib/apex-charts/apexcharts.min.js", "js/popup.js"],
+      "css": ["css/styles.css"],
+      "run_at": "document_end"
+    }
+  ],
+  "browser_action": {
+    "default_icon": "assets/icon.png",
+    "default_title": "BIG 5",
+    "default_popup": "html/popup.html"
+  },
+  "web_accessible_resources": ["assets/icon.png"]
+}
